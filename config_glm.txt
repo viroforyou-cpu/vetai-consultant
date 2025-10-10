@@ -1,5 +1,5 @@
 # Configuration for GLM-4.6 via Z.ai
-# File: /Users/shenseanchen/Desktop/Dev/yt-ZAI/test_claude/config_glm.txt
+# File: /Users/user_name/Desktop/Dev/yt-ZAI/test_claude/config_glm.txt
 
 # Load secrets from secrets.env
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

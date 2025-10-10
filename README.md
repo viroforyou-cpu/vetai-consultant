@@ -38,7 +38,7 @@ source config_claude.txt && claude --model claude-sonnet-4-5-20250929
 Add these to your `~/.zshrc`:
 
 ```bash
-source /Users/shenseanchen/Desktop/Dev/yt-ZAI/test_claude/setup_aliases.sh
+source /Users/user_name/Desktop/Dev/yt-ZAI/test_claude/setup_aliases.sh
 ```
 
 Then restart your terminal or run: `source ~/.zshrc`
