@@ -1,0 +1,15 @@
+# Configuration for Claude Sonnet 4.5 via Anthropic API
+# File: /Users/shenseanchen/Desktop/Dev/yt-ZAI/test_claude/config_claude.txt
+
+# Load secrets from secrets.env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/secrets.env"
+
+# Set environment variables for Anthropic
+export ANTHROPIC_BASE_URL="$ANTHROPIC_API_BASE_URL"
+export ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY_VALUE"
+export ANTHROPIC_MODEL=claude-sonnet-4-5-20250929
+unset ANTHROPIC_AUTH_TOKEN
+
+# Usage: source config_claude.txt && claude --model claude-sonnet-4-5-20250929
+

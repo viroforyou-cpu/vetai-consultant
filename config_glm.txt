@@ -1,0 +1,13 @@
+# Configuration for GLM-4.6 via Z.ai
+# File: /Users/shenseanchen/Desktop/Dev/yt-ZAI/test_claude/config_glm.txt
+
+# Load secrets from secrets.env
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/secrets.env"
+
+# Set environment variables for Z.ai
+export ANTHROPIC_BASE_URL="$ZAI_BASE_URL"
+export ANTHROPIC_AUTH_TOKEN="$ZAI_AUTH_TOKEN"
+unset ANTHROPIC_API_KEY
+
+# Usage: source config_glm.txt && claude --model glm-4.6
