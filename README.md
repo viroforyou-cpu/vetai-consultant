@@ -1,4 +1,4 @@
-# Claude Code - Multi-Model Setup
+# GLM-4.6 AI Agent Coding Test - Multi-Model Setup (Compared with Claude-4.5)
 
 This setup allows you to easily switch between different AI models with Claude Code, with credentials stored securely in a separate file.
 
