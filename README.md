@@ -2,6 +2,16 @@
 
 This setup allows you to easily switch between different AI models with Claude Code, with credentials stored securely in a separate file.
 
+📹 Full YouTube Guide: [Youtube link](https://www.youtube.com/watch?v=oRlCs8635h4&list=PLE9hy4A7ZTmpGq7GHf5tgGFWh2277AeDR&index=30)
+
+🚀 X Post: [X link](https://x.com/ShenSeanChen/status/1977664952841175144)
+
+💻 Launch Full Stack Product: [Github Repo](https://github.com/ShenSeanChen/launch-mvp-stripe-nextjs-supabase)
+
+☕️ Buy me a coffee: [Cafe Latte](https://buy.stripe.com/5kA176bA895ggog4gh)
+
+🤖️ Discord: [Invite link](https://discord.com/invite/TKKPzZheua)
+
 ## Available Models
 
 1. **GLM-4.6** (via Z.ai API)
