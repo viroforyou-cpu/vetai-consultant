@@ -1,154 +1,127 @@
-# Codebase Structure
+# Directory Structure
 
-**Analysis Date:** 2024-12-12
+**Analysis Date:** 2026-01-31
 
-## Directory Layout
+## Root Directory
 
 ```
 vetai-consultant-latest/
-├── src/                    # Main source code
-│   ├── components/        # React view components (current)
-│   │   ├── UploadView.tsx
-│   │   ├── SearchView.tsx
-│   │   ├── GraphView.tsx
-│   │   ├── AnalyticsView.tsx
-│   │   ├── HistoryView.tsx
-│   │   └── AIModelSelector.tsx
-│   ├── services/          # Service layer
-│   │   ├── geminiService.ts
-│   │   ├── qdrantService.ts
-│   │   └── backendService.ts
-│   ├── App.tsx           # Main application component
-│   ├── index.tsx         # React entry point
-│   ├── index.css         # Global styles
-│   └── types.ts          # TypeScript type definitions
-├── components/            # Legacy components (deprecated)
-├── backend/              # Optional Python backend (minimal)
-├── services/             # Legacy services (deprecated)
-├── env/                  # Python virtual environment
-├── dist/                 # Vite build output
-├── consultation_data/    # Runtime data storage
-└── node_modules/         # npm dependencies
+├── index.html              # HTML entry with Tailwind CDN + import maps
+├── index.tsx               # Alternative entry point (legacy)
+├── App.tsx                 # Alternative App component (legacy, 23KB)
+├── types.ts                # Root types file (legacy, 1,619 bytes)
+├── package.json            # Dependencies and scripts
+├── tsconfig.json           # TypeScript config
+├── vite.config.ts          # Vite build config
+├── docker-compose.yml      # Docker services (Qdrant, backend)
+├── .env                    # Environment variables (gitignored)
+├── .gitignore              # Git ignore patterns
+├── CLAUDE.md               # Project documentation for Claude Code
+├── README.md               # Project readme
+└── secrets.env.example     # Example secrets file
 ```
 
-## Directory Purposes
+## src/ Directory (Primary Source)
 
-**src/components/:**
-- Purpose: Current React view components and UI components
-- Contains: Main application views (Upload, Search, Graph, Analytics, History)
-- Key files: `UploadView.tsx`, `SearchView.tsx`, `GraphView.tsx`, `AnalyticsView.tsx`
-- Note: Legacy `/components/` directory exists but should not be used
+```
+src/
+├── index.tsx               # React entry point (14 lines)
+├── App.tsx                 # Main app component (281 lines)
+├── types.ts                # TypeScript type definitions (69 lines)
+├── index.css               # Global styles
+├── components/             # React components
+│   ├── UploadView.tsx      # Consultation upload form (137 lines)
+│   ├── SearchView.tsx      # Semantic search UI (132 lines)
+│   ├── GraphView.tsx       # D3.js graph visualization (504 lines)
+│   ├── AnalyticsView.tsx   # Analytics dashboard (22 lines)
+│   ├── HistoryView.tsx     # Consultation history (69 lines)
+│   └── AIModelSelector.tsx # AI model selection (148 lines)
+└── services/               # External service integrations
+    ├── aiService.ts        # AI service selector (103 lines)
+    ├── geminiService.ts    # Google Gemini AI (297 lines)
+    ├── glmService.ts       # GLM AI service (347 lines)
+    ├── qdrantService.ts    # Vector database (116 lines)
+    ├── backendService.ts   # Backend API (47 lines)
+    └── graphService.ts     # Graph processing (205 lines)
+```
 
-**src/services/:**
-- Purpose: Business logic and external API integrations
-- Contains: AI services, vector DB service, backend communication
-- Key files: `geminiService.ts`, `qdrantService.ts`, `backendService.ts`
-- Pattern: Plain TypeScript modules returning Promises
+## services/ Directory (Legacy)
 
-**src/App.tsx:**
-- Purpose: Application router and state management
-- Contains: View routing, consultation state, navigation logic
-- Key responsibilities: Single source of truth for consultations
+```
+services/
+├── geminiService.ts        # Legacy Gemini service (369 lines)
+├── backendService.ts       # Legacy backend service (29 lines)
+└── qdrantService.ts        # Legacy Qdrant service (117 lines)
+```
 
-**src/types.ts:**
-- Purpose: Centralized type definitions
-- Contains: Consultation, ExtractedInfo, ViewState, and other core types
-- Usage: Shared across all components and services
+**Note**: This directory contains legacy/older versions of services. Current services are in `src/services/`.
 
-**backend/:**
-- Purpose: Optional Python backend for file I/O
-- Contains: Minimal FastAPI server stub
-- Note: Currently minimal, most functionality handled by frontend
+## components/ Directory (Legacy)
 
-## Key File Locations
+```
+components/
+└── (Legacy React components - deprecated)
+```
 
-**Entry Points:**
-- `src/index.tsx`: React application entry point
-- `src/App.tsx`: Main application component with routing
-- `package.json`: Frontend dependencies and scripts
+**Note**: Use `src/components/` for current component development.
 
-**Core Logic:**
-- `src/types.ts`: Type definitions for entire application
-- `src/services/geminiService.ts`: All AI interactions
-- `src/services/qdrantService.ts`: Vector database operations
-- `src/services/backendService.ts`: Backend API communication
+## backend/ Directory (Optional)
 
-**Views:**
-- `src/components/UploadView.tsx`: New consultation form
-- `src/components/SearchView.tsx`: Search interface
-- `src/components/GraphView.tsx`: Patient graph visualization
-- `src/components/AnalyticsView.tsx`: Analytics dashboard
-- `src/components/HistoryView.tsx`: Consultation history
+```
+backend/
+├── main.py                 # FastAPI server entry point
+├── requirements.txt        # Python dependencies
+└── consultation_data/      # Saved consultation data (runtime)
+```
+
+## Subdirectories (Other Projects)
+
+```
+vetai-groq/                 # Alternative implementation with Groq AI
+vet-groq/                   # Alternative implementation
+veterinary-consultation/    # Related project
+```
 
 ## Naming Conventions
 
-**Files:**
-- Components: PascalCase (e.g., `UploadView.tsx`)
-- Services: camelCase (e.g., `geminiService.ts`)
-- Types: PascalCase (e.g., `Consultation.tsx` - centralized in types.ts)
+**Files**:
+- Components: PascalCase with `.tsx` extension (`UploadView.tsx`)
+- Services: camelCase with `.ts` extension (`geminiService.ts`)
+- Utilities: lowercase or camelCase
 
-**Variables:**
-- React state: camelCase (e.g., `consultations`, `isProcessing`)
-- Functions: camelCase (e.g., `handleSave`, `transcribeAndSummarize`)
-- Interfaces: PascalCase (e.g., `UploadViewProps`)
+**Directories**:
+- Lowercase for source directories (`src/`, `services/`, `components/`)
+- kebab-case for feature directories (if any)
 
-**Constants:**
-- Environment variables: UPPERCASE (e.g., `QDRANT_URL`)
-- Collection names: UPPER_SNAKE_CASE (e.g., `COLLECTION_NAME`)
+## Key File Locations
 
-## Where to Add New Code
+| Purpose | Location | Size |
+|---------|----------|------|
+| Main App Component | `src/App.tsx` | 281 lines |
+| Entry Point | `src/index.tsx` | 14 lines |
+| Type Definitions | `src/types.ts` | 69 lines |
+| AI Service Selector | `src/services/aiService.ts` | 103 lines |
+| Gemini Integration | `src/services/geminiService.ts` | 297 lines |
+| Qdrant Integration | `src/services/qdrantService.ts` | 116 lines |
+| Graph Component | `src/components/GraphView.tsx` | 504 lines |
 
-**New View:**
-- Implementation: `src/components/[Name]View.tsx`
-- Add to `src/App.tsx` in view routing
-- Add to ViewState type in `src/types.ts`
-- Add navigation button in `App.tsx`
+## Configuration Files
 
-**New Service:**
-- Implementation: `src/services/[service]Service.ts`
-- Export functions from service file
-- Import in components as needed
-- Add error handling following existing patterns
+| File | Purpose |
+|------|---------|
+| `package.json` | Dependencies, scripts, metadata |
+| `tsconfig.json` | TypeScript compiler configuration |
+| `vite.config.ts` | Vite build tool configuration |
+| `docker-compose.yml` | Docker services (Qdrant, backend) |
+| `.env` | Environment variables (not in git) |
+| `.gitignore` | Git ignore patterns |
 
-**New Data Type:**
-- Implementation: Add to `src/types.ts`
-- Update existing interfaces as needed
-- Include in serialization/deserialization logic
+## Build Artifacts
 
-**New AI Feature:**
-- Implementation: Add to `src/services/geminiService.ts`
-- Follow existing async patterns
-- Include proper error handling and language support
-
-## Special Directories
-
-**src/components/:**
-- Purpose: Active development components
-- Generated: No
-- Committed: Yes
-
-**components/:**
-- Purpose: Legacy components
-- Generated: No
-- Committed: Yes
-- Note: Deprecated, use `/src/components/` instead
-
-**backend/:**
-- Purpose: Optional Python backend
-- Generated: No
-- Committed: Yes
-- Note: Currently minimal stub
-
-**consultation_data/:**
-- Purpose: Runtime data storage
-- Generated: Yes (by backend)
-- Committed: No (should be in .gitignore)
-
-**dist/:**
-- Purpose: Vite build output
-- Generated: Yes (by Vite build)
-- Committed: No (should be in .gitignore)
+```
+dist/                       # Production build output (generated)
+```
 
 ---
 
-*Structure analysis: 2024-12-12*
+*Structure analysis: 2026-01-31*

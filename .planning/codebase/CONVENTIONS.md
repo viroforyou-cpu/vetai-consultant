@@ -1,188 +1,201 @@
 # Coding Conventions
 
-**Analysis Date:** 2024-11-29
+**Analysis Date:** 2026-01-31
 
 ## Naming Patterns
 
 **Files:**
-- PascalCase for components (e.g., `UploadView.tsx`, `SearchView.tsx`)
-- camelCase for services (e.g., `geminiService.ts`, `qdrantService.ts`)
-- kebab-case for configuration (e.g., `vite.config.ts`)
+- PascalCase for components: `UploadView.tsx`, `GraphView.tsx`
+- camelCase for services: `geminiService.ts`, `backendService.ts`
+- lowercase for utilities and helpers
+- Use `.tsx` for React components, `.ts` for pure TypeScript
 
 **Functions:**
-- camelCase for both component functions and utility functions
-- async functions prefix with `async` keyword
-- exported functions use camelCase (e.g., `getEmbedding`, `transcribeAndSummarize`)
+- camelCase: `getEmbedding`, `transcribeAndSummarize`, `extractClinicalData`
+- Exported functions: PascalCase when representing actions or concepts
+- Private functions: camelCase prefixed with underscore (e.g., `_validateInput`)
 
 **Variables:**
-- camelCase for local variables (e.g., `vetName`, `patientName`, `transcription`)
-- boolean flags use descriptive names (e.g., `isProcessing`, `darkMode`)
-- array variables use plural names when appropriate (e.g., `consultations`, `results`)
+- camelCase: `consultations`, `isProcessing`, `darkMode`
+- Constants: UPPER_SNAKE_CASE: `AI_MODEL`, `GEMINI_API_KEY`
+- Parameter names: descriptive and concise (e.g., `consultation`, `language`)
 
 **Types:**
-- PascalCase for interfaces (e.g., `Consultation`, `ExtractedInfo`)
-- PascalCase for enums (e.g., `Species`)
-- TypeScript interfaces define object shapes
-- Optional fields marked with `?`
+- Interface names: PascalCase with descriptive names: `Consultation`, `ExtractedInfo`
+- Type aliases: PascalCase for complex types, camelCase for simple ones
+- Enum-like unions: PascalCase: `Language`, `ViewState`
 
 ## Code Style
 
 **Formatting:**
-- Indentation: 4 spaces
-- No trailing whitespace
-- Semicolons at end of statements (not enforced, but observed)
-- Line length: ~100 characters (though longer lines exist)
+- No explicit formatter configured (no prettier/eslintrc found)
+- Manual adherence to consistent indentation (2 spaces)
+- Semicolons: Present (enforced by TypeScript)
+- Quotes: Single quotes in JS/TS, double in JSX
 
 **Linting:**
-- No formal ESLint configuration detected
-- TypeScript provides type checking via `tsc`
-- Code style varies between components and services
-
-**TypeScript:**
-- Strict TypeScript usage
-- No `any` types observed (except in React component props)
-- Proper typing for function parameters and returns
-- Interface definitions in `types.ts`
+- No ESLint configuration detected
+- TypeScript compiler with strict mode enabled
+- Custom patterns enforced through team conventions
 
 ## Import Organization
 
 **Order:**
-1. React imports first
-2. Relative service imports
-3. Relative component imports
-4. Third-party library imports
+1. External imports first:
+```typescript
+import React, { useState } from 'react';
+import { GoogleGenAI, Type } from "@google/genai";
+```
+
+2. Relative imports second:
+```typescript
+import { Consultation, Language } from '../types';
+import { transcribeAndSummarize } from '../services/aiService';
+```
 
 **Path Aliases:**
 - No path aliases configured
-- Relative imports used throughout (e.g., `../services/geminiService`)
+- Relative imports only: `../`, `./`, `../../`
 
-**Import Patterns:**
-```typescript
-import React, { useState } from 'react';
-import { Consultation } from '../types';
-import { getEmbedding } from '../services/geminiService';
-```
+**Grouping:**
+- Related imports grouped together
+- Blank line between import groups
 
 ## Error Handling
 
 **Patterns:**
-- try/catch blocks for async operations
-- console.error for logging errors
-- Graceful fallbacks for external service failures
-- Error messages displayed to user via alerts or status updates
-
-**Service Error Handling:**
 ```typescript
+// Try-catch for critical errors
 try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Backend error: ${response.status}`);
+  const vector = await getEmbedding(content);
+  // ...process vector
 } catch (error) {
-    console.error("Save Consultation Error:", error);
-    // Silent fallback - don't break UI
+  console.warn("Embedding generation failed", error);
+  // Continue without vector
 }
+
+// Async function error handling
+export const saveConsultation = async (c: Consultation) => {
+  try {
+    // ...save logic
+  } catch (err) {
+    console.error("Critical Save Error:", err);
+    alert("Error processing record.");
+  }
+};
 ```
 
-**Component Error Handling:**
-- User feedback via status messages
-- Loading states during async operations
-- Error states displayed to users
+**Error Boundaries:**
+- No React error boundaries implemented
+- Error handling at function level
 
 ## Logging
 
-**Framework:** console.log and console.error
+**Framework:** Console logging (no logging library)
 
 **Patterns:**
-- Error logging with descriptive messages
-- Warning messages for non-critical failures
-- Debug logging for API calls (e.g., "Qdrant is not reachable")
-- No structured logging framework
+- console.error() for critical errors: `console.error("Critical Save Error:", err)`
+- console.warn() for non-critical issues: `console.warn("Embedding generation failed", e)`
+- console.log() for info (limited usage)
+- No structured logging
 
 ## Comments
 
 **When to Comment:**
-- Complex AI prompts and prompts
-- Fallback logic explanations
-- Non-obvious business logic
-- API call retry logic
+- Complex AI prompting logic
+- Workarounds for API limitations
+- Business logic requirements
+- Edge cases in data processing
 
-**TSDoc Usage:**
-- Limited TSDoc usage
-- Comments mainly in service files for complex logic
-- No formal documentation generation
+**JSDoc/TSDoc:**
+- No JSDoc comments found in codebase
+- Self-documenting code with descriptive variable names
+- Inline comments for complex sections
+
+**Example:**
+```typescript
+// Minimal corpus to save tokens, but include clinical data for better matching
+const corpus = consultations.map(c => ({
+  id: c.id,
+  summary: c.summary,
+  diagnosis: c.extractedData?.clinical?.diagnosis || "",
+  treatment: c.extractedData?.clinical?.treatment || ""
+}));
+```
 
 ## Function Design
 
 **Size:**
-- Component functions: 100-200 lines
-- Service functions: 20-50 lines
-- Small, focused functions where possible
+- Average 50-100 lines per function
+- Keep functions focused on single responsibility
+- Break down complex operations into smaller functions
 
 **Parameters:**
-- Limited parameters per function (typically 2-4)
-- Optional parameters rarely used
-- Object destructuring for complex props
+- Prefer 3-5 parameters maximum
+- Use interfaces for complex parameter objects
+- Optional parameters at the end
 
 **Return Values:**
-- Services return Promises with proper typing
-- Components return JSX elements
-- Consistent return types for similar operations
+- Promise-based for async operations
+- Specific return types (not any)
+- Union types for multiple possible returns
 
 ## Module Design
 
 **Exports:**
-- Named exports for functions and types
-- Default exports for React components
-- Barrel files not used
+- Named exports for services and utilities
+- Default export for components
+- Export interfaces/types for shared use
 
-**Services Architecture:**
-- Pure TypeScript modules (not React components)
-- No shared state between services
-- Dependency injection via parameters
+**Barrel Files:**
+- No index.ts barrel files
+- Direct imports from source files
 
-**Component Architecture:**
-- Functional components with hooks
-- No class components detected
-- Container/presentational pattern not strictly followed
+**Service Pattern:**
+```typescript
+// Services are plain TypeScript modules
+export const getEmbedding = async (text: string): Promise<number[]> => {
+  // ...implementation
+};
 
-## React Patterns
+// No React component mixing
+```
 
-**Hooks Usage:**
-- useState for state management
-- useEffect for side effects
-- No custom hooks observed
-- No state management libraries
+## Component Patterns
+
+**Function Components:**
+```typescript
+const UploadView: React.FC<UploadViewProps> = ({ onSave, language, setIsProcessing }) => {
+  // ...implementation
+};
+```
+
+**Props:**
+- Interface for props: `UploadViewProps`
+- Destructuring in parameters
+- Optional props marked with `?`
 
 **State Management:**
-- Local state in components
-- App-level state in App.tsx
+- Local useState for component state
 - No global state management
+- Prop drilling for state sharing
 
-**Props Patterns:**
-- Object destructuring in component signatures
-- Optional props marked with default values
-- Type-safe props interfaces
+## TypeScript Patterns
 
-## Styling Patterns
+**Strict Mode:**
+- Enabled in tsconfig.json
+- No `any` types (found rare cases)
+- Explicit return types
 
-**Tailwind CSS:**
-- Class-based styling throughout
-- Dark mode via `dark:` prefix
-- Responsive utility classes
-- Consistent color scheme (teal primary, gray secondary)
+**Null Safety:**
+- Optional chaining: `c.extractedData?.clinical?.diagnosis`
+- Null checks: `if (!text) throw new Error("No response")`
+- Default values: `|| ""`
 
-## Async Patterns
-
-**Async Functions:**
-- async/await pattern throughout
-- Promise.all for parallel operations
-- No async/await in arrow functions (use async function declaration)
-- Proper error handling for async operations
-
-**Loading States:**
-- Multiple loading states for better UX
-- Optimistic UI updates
-- Disabled states during operations
+**Generics:**
+- Limited use, mostly in service interfaces
+- Type inference used when possible
 
 ---
 
-*Convention analysis: 2024-11-29*
+*Convention analysis: 2026-01-31*

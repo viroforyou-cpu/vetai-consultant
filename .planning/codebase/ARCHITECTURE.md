@@ -1,144 +1,186 @@
 # Architecture
 
-**Analysis Date:** 2024-12-12
+**Analysis Date:** 2026-01-31
 
-## Pattern Overview
+## Architectural Pattern
 
-**Overall:** Frontend-React-first with optional Python backend
+**Pattern**: Service-Oriented Frontend with AI Integration
 
-**Key Characteristics:**
-- Frontend-centric architecture with optional backend for persistence
-- Service-oriented separation of concerns
-- Graceful degradation when backend services are unavailable
-- Single source of truth in React state with localStorage fallback
+The application follows a service-oriented architecture where React components consume service modules that handle external API interactions (Gemini AI, Qdrant vector DB, optional backend).
 
 ## Layers
 
-**Presentation Layer (React Components):**
-- Purpose: UI rendering and user interaction
-- Location: `src/components/`
-- Contains: View components (UploadView, SearchView, GraphView, AnalyticsView, HistoryView)
-- Depends on: TypeScript types and service layer
-- Used by: App.tsx routing system
+### 1. Presentation Layer (React Components)
 
-**Application Layer (App.tsx):**
-- Purpose: Application state management and routing
-- Location: `src/App.tsx`
-- Contains: Main app logic, state management, view routing
-- Depends on: React hooks, TypeScript types, services
-- Used by: React DOM
+**Location**: `src/components/`
 
-**Service Layer:**
-- Purpose: External API integration and business logic
-- Location: `src/services/`
-- Contains: AI services (gemini), vector DB (qdrant), backend communication
-- Depends on: External SDKs (`@google/genai`, Qdrant API)
-- Used by: Presentation and Application layers
+**Responsibilities**:
+- UI rendering and user interaction
+- Form handling and validation
+- State management (local useState)
+- Optimistic UI updates
 
-**Data Layer:**
-- Purpose: Data persistence and storage
-- Location: `backend/` (minimal) + `consultation_data/` directory
-- Contains: File-based persistence stub
-- Depends on: File system
-- Used by: Service layer
+**Components**:
+- `UploadView.tsx` - Consultation upload form
+- `SearchView.tsx` - Semantic search interface
+- `GraphView.tsx` - D3.js knowledge graph visualization
+- `AnalyticsView.tsx` - Analytics dashboard
+- `HistoryView.tsx` - Consultation history list
+- `AIModelSelector.tsx` - AI model selection UI
+
+**Pattern**: Function components with hooks, no global state management
+
+### 2. Service Layer (TypeScript Modules)
+
+**Location**: `src/services/`
+
+**Services**:
+- `aiService.ts` - AI service selector (Gemini/GLM routing)
+- `geminiService.ts` - Google Gemini AI operations
+- `glmService.ts` - GLM AI operations
+- `qdrantService.ts` - Vector database operations
+- `backendService.ts` - Backend API communication
+- `graphService.ts` - Graph data processing
+
+**Pattern**: Plain TypeScript modules with named exports, Promise-based async functions
+
+### 3. Data Layer (Types + Persistence)
+
+**Location**: `types.ts`, `App.tsx` state management
+
+**Storage**:
+- LocalStorage for offline cache
+- Optional backend for file I/O
+- Qdrant for vector search
 
 ## Data Flow
 
-**Consultation Upload Pipeline**:
+### Consultation Upload Flow
 
-1. User fills form + uploads audio in `UploadView`
-2. `App.tsx` handles save via `handleSave()` function
-3. Parallel async processing:
-   - Generate embedding via `geminiService.getEmbedding()`
-   - Optimistic UI update - consultation added to state immediately
-   - Background operations run without blocking:
-     - `saveConsultationToDisk()` via backend API
-     - `upsertConsultation()` to Qdrant vector DB
-4. Graceful handling of failures - non-blocking UI
+```
+User Input (UploadView)
+    ↓
+Optimistic UI Update (instant)
+    ↓
+Parallel Async Processing:
+    ├→ Audio Transcription (Gemini AI)
+    ├→ Data Extraction (Gemini AI)
+    └→ Embedding Generation (Gemini AI)
+    ↓
+Background Saves:
+    ├→ LocalStorage
+    ├→ Backend API (optional)
+    └→ Qdrant Vector DB
+    ↓
+Update State with Final Results
+```
 
-**Search Pipeline**:
+### Semantic Search Flow
 
-1. User enters search query in `SearchView`
-2. Query converted to embedding via `geminiService.getEmbedding()`
-3. Vector search via `qdrantService.searchQdrant()` with fallback to `searchLocalVectors()`
-4. AI-generated answer via `geminiService.generateAnswerFromContext()`
-5. Results displayed with citations
-
-**State Management**:
-- Single source of truth: `consultations` array in `App.tsx`
-- LocalStorage backup for offline capability
-- Embeddings stored inline for local search fallback
+```
+User Query (SearchView)
+    ↓
+Query Embedding (Gemini AI)
+    ↓
+Vector Search:
+    ├→ Qdrant (primary)
+    └→ Local Fallback (if Qdrant unavailable)
+    ↓
+AI-Generated Answer (Gemini AI)
+    ↓
+Display Results with Citations
+```
 
 ## Key Abstractions
 
-**Consultation:**
-- Purpose: Core data model for veterinary consultations
-- Location: `src/types.ts`
-- Pattern: Rich object with metadata, AI-generated fields, and embeddings
+### AI Service Selector Pattern
 
-**Service Abstraction:**
-- Purpose: Decouple business logic from UI
-- Location: `src/services/`
-- Pattern: Plain TypeScript modules with async functions
-- Examples: `geminiService.ts`, `qdrantService.ts`, `backendService.ts`
+**Location**: `src/services/aiService.ts`
 
-**Graceful Degradation:**
-- Purpose: Ensure functionality when services unavailable
-- Location: Primarily `qdrantService.ts`
-- Pattern: Service availability checks with fallback implementations
-- Examples: Qdrant unavailable → local browser-based vector search
+**Purpose**: Route AI requests to appropriate provider (Gemini or GLM)
+
+**Pattern**:
+```typescript
+export const getEmbedding = async (text: string): Promise<number[]> => {
+  const model = getCurrentAIModel();
+  if (model === 'glm') {
+    return glmService.getGLMEmbedding(text);
+  }
+  return geminiService.getEmbedding(text);
+};
+```
+
+### Vector Search with Fallback
+
+**Location**: `src/services/qdrantService.ts`
+
+**Pattern**: Try Qdrant first, fall back to local browser search
+
+```typescript
+export const searchQdrant = async (vector: number[]): Promise<string[]> => {
+  if (!await isQdrantAvailable()) return [];
+  // ... Qdrant search
+};
+
+export const searchLocalVectors = (queryVector: number[], consultations: Consultation[]): string[] => {
+  // Browser-based cosine similarity
+};
+```
+
+### Service Detection
+
+**Location**: `src/services/backendService.ts`
+
+**Pattern**: Auto-detect environment (dev vs prod)
+
+```typescript
+const BASE_URL = window.location.port === '8000'
+  ? ''
+  : process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
+```
 
 ## Entry Points
 
-**Frontend Entry:**
-- Location: `src/index.tsx` → `src/App.tsx`
-- Triggers: React DOM rendering
-- Responsibilities: App initialization, view routing
+### Primary Entry Point
 
-**Backend Entry (Optional):**
-- Location: `backend/main.py` (currently minimal stub)
-- Triggers: FastAPI server startup
-- Responsibilities: File I/O operations, graph operations (minimal)
+**File**: `index.html` → `src/index.tsx` → `src/App.tsx`
 
-**Development:**
-- Location: Root directory
-- Command: `npm run dev` (starts Vite dev server on :3000)
+**Flow**:
+1. HTML loads with Tailwind CDN and import maps
+2. `src/index.tsx` mounts React to `#root`
+3. `src/App.tsx` initializes services and manages application state
 
-## Error Handling Strategy
+### Service Initialization
 
-**Qdrant Failures:**
-- Silent fallback to local browser-based vector search
-- Logged warnings in console
+**Location**: `src/App.tsx` (useEffect)
 
-**Gemini Failures:**
-- User-visible error alerts
-- Critical operations may fail
+**Order**:
+1. Load consultations from LocalStorage
+2. Initialize Qdrant connection
+3. Check for missing embeddings
+4. Register service worker (if available)
 
-**Backend Failures:**
-- Helpful error messages with guidance (e.g., "Is the Python backend running?")
-- Non-blocking UI for primary operations
+## State Management
 
-**Network Failures:**
-- Fails fast without retry logic
-- Graceful degradation where possible
+**Pattern**: Local component state with prop drilling
 
-## Cross-Cutting Concerns
+**Main State** (`src/App.tsx`):
+- `consultations` - Array of all consultations (single source of truth)
+- `currentView` - Current active view
+- `language` - Selected language (en/es)
+- `darkMode` - Dark mode toggle
+- `aiModel` - Selected AI model
 
-**Dark Mode:**
-- Implementation: Tailwind CSS `darkMode: 'class'` strategy
-- Location: `App.tsx` toggles 'dark' class on `<html>` element
-- Pattern: Requires `dark:` prefix in all component styles
+**No Global State Management**: No Redux, Zustand, or Context API used
 
-**Environment Detection:**
-- Implementation: Auto-detects prod vs dev mode
-- Location: `backendService.ts`
-- Logic: `window.location.port === '8000'` determines backend URL
+## Module Boundaries
 
-**Internationalization:**
-- Implementation: Dual language support (English/Spanish)
-- Location: `Language` type and service layer
-- Pattern: Language passed down to all views and services
+**Services**: Pure TypeScript modules, no React dependencies
+**Components**: React components, consume services via imports
+**Types**: Centralized in `types.ts`
+
+**Import Pattern**: Relative imports only (`../`, `./`)
 
 ---
 
-*Architecture analysis: 2024-12-12*
+*Architecture analysis: 2026-01-31*

@@ -1,162 +1,183 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-01-29
+**Analysis Date:** 2026-01-31
 
 ## Tech Debt
 
-### Corrupted Backend Files
-- **Issue**: Python backend files are corrupted/unreadable (`main.py`, `graph_agent.py`)
-- Files: `[backend/main.py]`, `[backend/graph_agent.py]`
-- Impact: Backend functionality completely broken, Docker compose will fail to build
-- Fix approach: Rewrite backend from scratch or delete broken files if not needed
+**Legacy Component Duplication:**
+- Issue: Two component directories exist with similar functionality - `/src/components/` and `/components/`
+- Files: `/src/components/` (current), `/components/` (legacy)
+- Impact: Confusion about which components to use, maintenance burden
+- Fix approach: Clean up `/components/` directory and ensure all imports use `/src/components/`
 
-### Duplicate AI Service Abstraction
-- **Issue**: Unnecessary service layer abstraction creating maintenance burden
-- Files: `[src/services/aiService.ts]`, `[src/services/geminiService.ts]`, `[src/services/glmService.ts]`
-- Impact: Double maintenance, duplicate code paths, potential model switching bugs
-- Fix approach: Use factory pattern directly in each service or remove abstraction layer entirely
+**Entry Point Duplication:**
+- Issue: Two App.tsx files and two index.tsx files at different locations
+- Files: `/App.tsx` (23KB), `/src/App.tsx` (281KB), `/index.tsx`, `/src/index.tsx`
+- Impact: Uncertainty about which entry points are active, potential conflicts
+- Fix approach: Consolidate to single entry point structure (prefer `/src/` directory)
 
-### Service Import Inconsistency
-- **Issue**: UploadView imports from aiService while App imports directly from geminiService
-- Files: `[src/components/UploadView.tsx]` (line 2), `[src/App.tsx]` (line 9)
-- Impact: Confusing code paths, potential model mismatches
-- Fix approach: Standardize all imports to use aiService layer
+**Service Layer Duplication:**
+- Issue: Multiple service files with similar names and functionality scattered across directories
+- Files: `/services/geminiService.ts` (369 lines), `/src/services/geminiService.ts` (297 lines), similar patterns for other services
+- Impact: Code duplication, inconsistent behavior, maintenance difficulty
+- Fix approach: Consolidate services into `/src/services/` directory, remove redundant files
+
+**Missing Service Import:**
+- Issue: App.tsx imports from non-existent `./src/services/aiService`
+- Files: `/App.tsx` line 10, actual service at `/src/services/geminiService.ts`
+- Impact: Runtime error during startup
+- Fix approach: Update import path or rename file appropriately
 
 ## Known Bugs
 
-### Audio Format Mismatch
-- **Symptoms**: GLM transcription may fail with audio files
-- Files: `[src/services/glmService.ts]` (lines 73-76)
-- Trigger: Audio file transmission using `image_url` format instead of audio format
-- Workaround: Force Gemini usage for audio processing
+**AI Service Import Error:**
+- Symptoms: App fails to start due to missing import
+- Files: `/App.tsx` line 10 imports `./src/services/aiService`
+- Trigger: Application startup
+- Workaround: Change import to `./src/services/geminiService`
 
-### Hardcoded API Keys in Code
-- **Symptoms**: Key detection false positives
-- Files: `[src/services/aiService.ts]` (lines 88-89)
-- Trigger: Production API keys might match detection patterns
-- Workaround: Use separate validation for proper API keys
+**Backend API Endpoint Mismatch:**
+- Symptoms: Backend service fails when endpoint doesn't match
+- Files: `/services/backendService.ts` line 4-6 uses port detection logic
+- Trigger: Running in production vs development environment
+- Workaround: Ensure backend URL is correctly configured in environment
 
-### Promise.all Silent Failure
-- **Symptoms**: Background saves can fail without user notification
-- Files: `[src/App.tsx]` (lines 48-51)
-- Trigger: Backend or Qdrant failures during parallel saves
-- Workaround: Add error collection and summary display
+**Missing Backend API Implementation:**
+- Symptoms: Save operations fail
+- Files: `/backend/main.py` has basic implementation but `/save_consultation` endpoint exists
+- Trigger: Attempting to save consultations
+- Workaround: Use localStorage as fallback
 
 ## Security Considerations
 
-### API Key Exposure Risk
-- **Risk**: API keys in environment variables only
-- Files: `[secrets.env]` (gitignored), `[src/services/geminiService.ts]` (line 4), `[src/services/glmService.ts]` (line 7)
-- Current mitigation: Git ignores secrets file
-- Recommendations: Implement runtime key validation, add key rotation logs
+**Hardcoded API Keys:**
+- Risk: API keys exposed in environment variables stored in plaintext
+- Files: `.env` file contains `API_KEY`
+- Current mitigation: Uses `.env` file with example
+- Recommendations: Add `secrets.env` to `.gitignore`, implement proper secret management
 
-### No Input Validation
-- **Risk**: Direct user input to AI models without sanitization
-- Files: `[src/services/glmService.ts]` (line 108), `[src/services/geminiService.ts]` (prompt templates)
-- Current mitigation: None detected
-- Recommendations: Add input sanitization, prompt injection protection
+**CORS Configuration:**
+- Risk: Overly permissive CORS settings allow any origin
+- Files: `/backend/main.py` lines 49-53
+- Current mitigation: `allow_origins=["*"]`
+- Recommendations: Implement whitelist of allowed origins
 
-### Cross-Site Scripting
-- **Risk**: Dynamic content from AI responses could contain scripts
-- Files: `[src/components/SearchView.tsx]`, `[src/components/GraphView.tsx]`
-- Current mitigation: None detected
-- Recommendations: HTML escape all AI responses before display
+**File Upload Security:**
+- Risk: No validation of uploaded audio files
+- Files: UploadView component processes any audio file
+- Recommendations: Add file type validation, size limits, virus scanning
 
 ## Performance Bottlenecks
 
-### Sequential AI Processing
-- **Problem**: Audio transcription and data extraction run sequentially
-- Files: `[src/components/UploadView.tsx]` (lines 48+)
-- Cause: UI pattern requires complete transcription before extraction
-- Improvement path: Parallel processing with intermediate state updates
+**Embedding Generation Rate Limits:**
+- Problem: Sequential embedding generation can cause delays
+- Files: `/App.tsx` lines 254-283 in `fixMissingEmbeddings`
+- Cause: Sequential API calls with 500ms delays
+- Improvement path: Implement parallel embedding generation with retry logic
 
-### Large Embedding Arrays
-- **Problem**: 768-dim vectors stored inline in each consultation
-- Files: `[src/types.ts]`, `[src/services/geminiService.ts]` (embedding response)
-- Cause: No separate vector storage architecture
-- Improvement path: Store vectors in database or blob storage, references in objects
+**Large File Downloads:**
+- Problem: Mock data is large (504 lines in App.tsx)
+- Files: `/App.tsx` lines 84-243
+- Cause: In-memory storage of all consultation data
+- Improvement path: Implement pagination, lazy loading, or virtual scrolling
+
+**Qdrant Fallback Performance:**
+- Problem: Local vector search is slow for large datasets
+- Files: `/services/qdrantService.ts` lines 94-117
+- Cause: Browser-side cosine similarity calculation
+- Improvement path: Consider using WebAssembly for faster calculations
 
 ## Fragile Areas
 
-### Qdrant Dependency Chain
-- **Files**: `[src/services/qdrantService.ts]`, `[src/App.tsx]` (lines 34-36)
-- Why fragile: Multiple nested try-catch blocks with silent failures
-- Safe modification: Add configuration thresholds for fallback times
-- Test coverage: Limited - only checks 200ms threshold
+**Environment Detection Logic:**
+- Files: `/services/backendService.ts` lines 4-6
+- Why fragile: Relies on port detection which can break in different deployment scenarios
+- Safe modification: Add environment variable override
+- Test coverage: Limited testing of production vs dev environments
 
-### Environment Detection Logic
-- **Files**: `[src/services/backendService.ts]` (line 4)
-- Why fragile: Port-based detection assumes specific deployment patterns
-- Safe modification: Add explicit configuration options
-- Test coverage: Missing for non-standard deployments
+**Graph View Component:**
+- Files: `/src/components/GraphView.tsx` (504 lines)
+- Why fragile: Large monolithic component with complex D3.js logic
+- Safe modification: Break into smaller subcomponents
+- Test coverage: Limited testing of graph visualization
 
-### GLM Service Placeholder Implementation
-- **Files**: `[src/services/glmService.ts]` (multiple functions)
-- Why fragile: Fallback patterns not thoroughly tested
-- Safe modification: Add GLM-specific error handling
-- Test coverage: Minimal for GLM integration paths
+**Service Initialization:**
+- Files: `/App.tsx` lines 38-52
+- Why fragile: Multiple service checks with complex dependency chain
+- Safe modification: Add error boundaries for each service
+- Test coverage: No unit tests for service initialization
 
 ## Scaling Limits
 
-### Client-Side Vector Search
-- **Current capacity**: ~100 consultations before performance degradation
-- **Limit**: Browser memory and computation constraints
-- **Scaling path**: Implement pagination, result caching, or server-assisted search
+**LocalStorage Data Size:**
+- Current capacity: ~5MB (browser limitation)
+- Limit: Will fail with large datasets
+- Scaling path: Implement IndexedDB or service worker caching
 
-### LocalStorage Backup
-- **Current capacity**: ~5MB (browser limit)
-- **Limit**: ~1000 consultations with full data
-- **Scaling path**: IndexedDB implementation or cloud backup integration
+**Qdrant Connection Limits:**
+- Current capacity: Limited by local Docker setup
+- Limit: Memory and CPU constraints
+- Scaling path: Deploy managed Qdrant service
+
+**Gemini API Rate Limits:**
+- Current capacity: Free tier with limitations
+- Limit: Will block during high usage
+- Scaling path: Implement request queuing and exponential backoff
 
 ## Dependencies at Risk
 
-### GLM Service Dependencies
-- **Risk**: Z.AI API could change format without notice
-- Impact: All GLM functionality breaks
-- Migration plan: Implement fallback to Gemini, add API version pinning
+**React 18.3.1:**
+- Risk: Critical security patches may be missing
+- Impact: Potential XSS or other vulnerabilities
+- Migration plan: Monitor for updates, plan upgrade to React 19 when stable
 
-### D3.js Visualization
-- **Risk**: Major version changes could break D3.js patterns
-- Impact: Graph visualization fails
-- Migration plan: Implement wrapper component with version-specific code
+**@google/genai 0.2.0:**
+- Risk: Early version with potential breaking changes
+- Impact: API changes could break functionality
+- Migration plan: Monitor Google SDK updates, test compatibility
+
+**D3.js 7.9.0:**
+- Risk: Large library with many unused features
+- Impact: Increased bundle size
+- Migration plan: Consider lighter alternatives or tree-shaking
 
 ## Missing Critical Features
 
-### Data Validation Layer
-- **Problem**: No validation on consultation data structure
-- Blocks: Reliability of AI processing, data integrity
-- Recommendation: Implement schema validation for all consultations
+**No Authentication System:**
+- Problem: No user authentication or session management
+- Blocks: Multi-user environment, role-based access control
+- Recommendation: Implement auth with OAuth2 or JWT
 
-### Error Recovery System
-- **Problem**: No mechanism to retry failed AI operations
-- Blocks: Reliability in poor network conditions
-- Recommendation: Exponential backoff for transient failures
+**No Data Validation:**
+- Problem: User inputs not validated before processing
+- Blocks: Data integrity, preventing invalid consultations
+- Recommendation: Add frontend validation with Zod or similar
 
-### Audit Logging
-- **Problem**: No audit trail for AI decisions and data changes
-- Blocks: Compliance, debugging, liability
-- Recommendation: Add comprehensive logging for all operations
+**No Audit Logging:**
+- Problem: No track of who made changes to data
+- Blocks: Regulatory compliance, debugging
+- Recommendation: Implement audit trails for all data operations
 
 ## Test Coverage Gaps
 
-### AI Service Testing
-- **What's not tested**: Actual API calls, error responses, rate limiting
-- Files: `[src/services/]` directory
-- **Risk**: Production failures not caught, API limits exceeded
-- Priority: High - need mock AI service for testing
+**No Unit Tests:**
+- What's not tested: Service layer logic, component rendering, data processing
+- Files: All service files, most components
+- Risk: Regression issues when adding new features
+- Priority: High
 
-### Component Integration Testing
-- **What's not tested**: User workflows across components
-- Files: All components in `[src/components/]`
-- **Risk**: UI state management issues between views
-- Priority: Medium - need E2E tests
+**No Integration Tests:**
+- What's not tested: API endpoints, service interactions, data flow
+- Files: Backend endpoints, frontend-backend communication
+- Risk: Integration failures not caught
+- Priority: Medium
 
-### Backend API Testing
-- **What's not tested**: Actual file I/O, graph operations
-- Files: `[backend/]` (currently broken)
-- **Risk**: Silent failures in data persistence
-- Priority: High - backend needs complete rewrite and tests
+**No Performance Tests:**
+- What's not tested: Embedding generation speed, search performance
+- Files: Service methods, large dataset handling
+- Risk: Performance degradation unnoticed
+- Priority: Medium
 
 ---
 
-*Concerns audit: 2026-01-29*
+*Concerns audit: 2026-01-31*

@@ -1,95 +1,150 @@
 # External Integrations
 
-**Analysis Date:** 2026-01-29
+**Analysis Date:** 2026-01-31
 
-## APIs & External Services
+## AI Services
 
-**AI/ML Services:**
-- Google Gemini AI - Primary AI provider
-  - Models: gemini-2.5-flash, text-embedding-004
-  - Uses @google/genai SDK
-  - Functions: Transcription, embeddings, semantic search, data extraction, knowledge graph generation
-  - Auth: API_KEY environment variable
+### Google Gemini AI
 
-**Vector Database:**
-- Qdrant - Vector search for semantic similarity
-  - Collection: vet_consultations
-  - Vectors: 768-dimension cosine similarity
-  - URL: http://localhost:6333 (configurable via QDRANT_URL)
-  - Fallback: Browser-based local vector search implementation
+**Service**: Text embeddings, transcription, data extraction, semantic search
+
+**Endpoints Used**:
+- `models.embedContent` - Text to vector embeddings (text-embedding-004)
+- `models.generateContent` - General AI operations
+- Audio transcription via `generateContent` with audio input
+
+**API Key**: `GEMINI_API_KEY` (from environment)
+
+**Usage Location**:
+- `src/services/geminiService.ts`
+
+**Configuration**:
+```typescript
+const getAI = () => new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+```
+
+**Graceful Degradation**: None (required for core functionality)
+
+**Rate Limits**: Free tier limitations
+
+### GLM (Alternative AI)
+
+**Service**: Alternative AI model for multi-language support
+
+**Usage Location**:
+- `src/services/glmService.ts`
+
+**API Key**: `GLM_API_KEY` (from environment)
+
+**Graceful Degradation**: Falls back to Gemini for some operations
 
 ## Data Storage
 
-**Databases:**
-- Local file system - Primary persistence
-  - Location: ./consultation_data/ (relative to backend cwd)
-  - Format: JSON files
-  - Services: backendService.ts
+### Qdrant Vector Database
 
-**Graph Database:**
-- FalkorDB - Referenced in Docker compose
-  - Purpose: Graph operations for knowledge graphs
-  - Connection: falkordb:6379 (Docker)
-  - Note: Implementation appears minimal in current codebase
+**Purpose**: Semantic search vector storage
 
-**File Storage:**
-- Local filesystem only - Audio files, attachments stored locally
+**Connection**:
+- URL: `http://localhost:6333` (default)
+- Configurable via `QDRANT_URL` env var
+- Docker container or hosted service
 
-**Caching:**
-- No dedicated caching detected
-- LocalStorage used for client-side caching of consultations
+**Collection**: `vet_consultations`
+- Vector size: 768 dimensions
+- Distance: Cosine
 
-## Authentication & Identity
+**Operations**:
+- Initialize collection: `PUT /collections/{name}`
+- Upsert points: `PUT /collections/{name}/points`
+- Search: `POST /collections/{name}/points/search`
 
-**Auth Provider:**
-- Custom authentication
-  - Implementation: No auth system detected
-  - Security: API_KEY for AI services only
+**Usage Location**:
+- `src/services/qdrantService.ts`
 
-## Monitoring & Observability
+**Graceful Degradation**:
+- Falls back to local browser-based vector search
+- `searchLocalVectors()` uses cosine similarity in browser
+- User warned via console: "Qdrant is not reachable. App will run in 'Local Only' mode."
 
-**Error Tracking:**
-- Console logging
-  - Implementation: try/catch blocks with console.error/warn
-  - Coverage: Network errors, AI service failures, database issues
+### LocalStorage (Browser)
 
-**Logs:**
-- Browser console
-  - Framework: native console API
-  - Patterns: Error messages, warnings, debug info
+**Purpose**: Client-side data persistence
 
-## CI/CD & Deployment
+**Storage Keys**:
+- `vetai_consultations` - Main consultation data
+- Session data for ongoing work
 
-**Hosting:**
-- Static file hosting (no specific platform detected)
-- Docker support via docker-compose.yml
+**Usage Location**:
+- `src/App.tsx` (save/load functions)
+- `src/services/backendService.ts`
 
-**CI Pipeline:**
-- No CI/CD configuration detected
-- Manual deployment via npm run build
+**Limitations**:
+- ~5MB storage limit
+- Will fail with large datasets
 
-## Environment Configuration
+## Optional Backend
 
-**Required env vars:**
-- API_KEY - Google Gemini AI API key
-- VITE_BACKEND_URL - Backend API endpoint (defaults to http://127.0.0.1:8000)
-- QDRANT_URL - Vector database endpoint (defaults to http://localhost:6333)
-- AI_MODEL - AI model selection (defaults to 'gemini')
+### FastAPI Backend
 
-**Secrets location:**
-- .env file in project root
-- Not committed to git (secrets.env.example exists)
+**Purpose**: File I/O operations, data persistence
 
-## Webhooks & Callbacks
+**Endpoints**:
+- `POST /save_consultation` - Save consultation to disk
 
-**Incoming:**
-- No webhook endpoints detected
+**Connection**:
+- Dev: `http://127.0.0.1:8000` (auto-detected)
+- Prod: Same origin (relative path)
+- Configurable via `VITE_BACKEND_URL` env var
 
-**Outgoing:**
-- Google Search API via Gemini for PubMed searches
-  - Usage: searchPubMed() function uses googleSearch tool
+**Usage Location**:
+- `src/services/backendService.ts`
+
+**Graceful Degradation**:
+- Falls back to LocalStorage
+- User alerted: "Is the Python backend running?"
+
+## CDNs
+
+### esm.sh
+
+**Purpose**: Module delivery for dependencies
+
+**Modules Served**:
+- `d3` - Data visualization
+- `@google/genai` - Google AI SDK
+- `react` / `react-dom` - React framework
+- `vite` - Build tool
+
+**Usage**: Import maps in `index.html`
+
+### Tailwind CSS CDN
+
+**Purpose**: CSS framework delivery
+
+**URL**: `https://cdn.tailwindcss.com`
+
+**Configuration**: Dark mode via class strategy
+
+### Google Fonts
+
+**Purpose**: Font delivery
+
+**Font**: Inter family
+- Weights: 300, 400, 500, 600, 700
+
+## External APIs (Referenced)
+
+### PubMed (Biomedical Literature)
+
+**Purpose**: Scientific literature search
+
+**Status**: Mentioned but not fully implemented
+
+**Usage Location**:
+- `src/services/geminiService.ts` - `searchPubMed()` function
+
+**Implementation**: Uses Gemini AI to query PubMed via web search capabilities
 
 ---
 
-*Integration audit: 2026-01-29*
-```
+*Integrations analysis: 2026-01-31*
