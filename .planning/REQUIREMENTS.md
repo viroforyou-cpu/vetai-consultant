@@ -75,10 +75,12 @@ Requirements mapped to phases in ROADMAP.md
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GLM-01 through GLM-05 | Phase 1 | Pending |
-| SUPA-01 through SUPA-08 | Phase 2 | Pending |
-| BUILD-01 through BUILD-08 | Phase 3 | Pending |
-| DEPLOY-01 through DEPLOY-07 | Phase 4 | Pending |
+| BUILD-01 through BUILD-08 | Phase 1 | Pending |
+| GLM-01 through GLM-05 | Phase 2 | Pending |
+| SUPA-01 through SUPA-04 | Phase 3 | Pending |
+| SUPA-05 through SUPA-08 | Phase 4 | Pending |
+| DEPLOY-01 through DEPLOY-05 | Phase 5 | Pending |
+| DEPLOY-06 through DEPLOY-07 | Phase 6 | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
@@ -87,4 +89,4 @@ Requirements mapped to phases in ROADMAP.md
 
 ---
 *Requirements defined: 2025-02-04*
-*Last updated: 2025-02-04 after initial definition*
+*Last updated: 2025-02-04 after roadmap creation*
