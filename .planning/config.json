@@ -1,0 +1,17 @@
+{
+  "mode": "yolo",
+  "depth": "standard",
+  "parallelization": false,
+  "commit_docs": true,
+  "model_profile": "quality",
+  "ai_service": {
+    "provider": "glm",
+    "model": "glm-4.7",
+    "endpoint": "ZhipuAI/BigModel"
+  },
+  "workflow": {
+    "research": true,
+    "plan_check": true,
+    "verifier": true
+  }
+}
