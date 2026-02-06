@@ -1,163 +1,95 @@
 # Technology Stack
 
-**Analysis Date:** 2026-01-31
+**Analysis Date:** 2026-02-06
 
 ## Languages
 
-- **TypeScript**: Primary language for frontend
-  - Version: 5.5.3
-  - Strict mode enabled
-  - Target: ES2020
-  - Used for: All React components, services, utilities
+**Primary:**
+- TypeScript 5.5.3 - `/src`, `/services`, root `.tsx` files
+  - Target: ES2022
+  - JSX: react-jsx transform
+  - Strict mode with path aliases (`@/*`)
 
-- **JavaScript**: Used via React/TypeScript compilation
-  - ES2020 features available
-  - JSX for React components
-
-- **Python**: Backend (optional)
-  - Used for FastAPI server in `/backend/`
-  - Minimal implementation
+**Secondary:**
+- Python 3.x - `/backend` (FastAPI server, optional)
 
 ## Runtime
 
-- **Node.js**: JavaScript runtime
-  - Required for development server (Vite)
-  - Required for build process
+**Environment:**
+- Node.js (via npm) - Frontend runtime
+- Python 3.x - Backend runtime (optional, Docker or direct execution)
 
-- **Browser**: Runtime environment
-  - Modern browser with ES2020 support
-  - LocalStorage for data persistence
-  - Canvas API for graph visualization
+**Package Manager:**
+- npm - Frontend dependencies
+- pip - Backend dependencies (via `/backend/requirements.txt`)
+- Lockfile: `package-lock.json` present
 
 ## Frameworks
 
-### Frontend
+**Core:**
+- React 18.3.1 - UI framework (`/src/App.tsx`, `/src/components/`)
+- Vite 5.3.3 - Build tool and dev server (`vite.config.ts`)
+- FastAPI (Python) - Optional backend API server (`/backend/main.py`)
 
-- **React 18.3.1**: UI framework
-  - Function components with hooks
-  - Strict mode enabled
-  - No class components used
+**Testing:**
+- Not detected
 
-- **Vite 5.3.3**: Build tool and dev server
-  - Fast HMR (Hot Module Replacement)
-  - ESBuild for compilation
-  - Import maps for CDN dependencies
-
-- **Tailwind CSS 3.4.4**: Styling framework
-  - Loaded via CDN (not npm)
-  - Dark mode: 'class' strategy
-  - Inter font family
-
-### Backend (Optional)
-
-- **FastAPI**: Python web framework
-  - Minimal implementation
-  - CORS middleware enabled
-  - File upload handling
+**Build/Dev:**
+- @vitejs/plugin-react 4.3.1 - React plugin for Vite
+- esm.sh CDN imports - Non-standard dependency loading via `index.html` import maps
 
 ## Key Dependencies
 
-### UI Components
+**Critical:**
+- @google/genai 0.2.0 - Google Gemini AI SDK for embeddings, transcription, structured data extraction
+  - Model: `gemini-2.5-flash` for generation
+  - Model: `text-embedding-004` for 768-dimension vectors
+- d3 7.9.0 - Data visualization for knowledge graphs (`/src/components/GraphView.tsx`)
 
-- **D3.js 7.9.0**: Data visualization
-  - Graph rendering (force-directed graphs)
-  - SVG manipulation
+**Infrastructure:**
+- lucide-react 0.400.0 - Icon library for UI
+- tailwindcss 3.4.4 - Utility-first CSS framework (loaded via CDN in `index.html`)
+- autoprefixer 10.4.19 - CSS post-processing
+- postcss 8.4.38 - CSS transformation
 
-- **Lucide React 0.400.0**: Icon library
-  - Modern icon components
-  - Tree-shakeable
-
-### AI/ML
-
-- **@google/genai 0.2.0**: Google Gemini AI SDK
-  - Audio transcription
-  - Text embeddings (text-embedding-004)
-  - Structured data extraction
-  - Semantic search
-
-- **GLM Support**: Alternative AI model
-  - GLMService.ts for Chinese/other language support
-  - Service selector pattern in aiService.ts
-
-### Data/Storage
-
-- **Qdrant**: Vector database (via Docker)
-  - Local: http://localhost:6333
-  - Collection: vet_consultations
-  - Vector size: 768 (Cosine distance)
-  - Graceful fallback to local browser search
-
-### Development Tools
-
-- **TypeScript 5.5.3**: Type checking
-  - Strict mode enabled
-  - No emit (Vite handles this)
-
-- **@vitejs/plugin-react 4.3.1**: Vite React plugin
-  - JSX/TSX transformation
-  - Fast refresh
-
-- **PostCSS 8.4.38 + Autoprefixer 10.4.19**: CSS processing
-  - Tailwind CSS integration
+**Python Backend (optional):**
+- fastapi - Backend API framework (`/backend/main.py`)
+- uvicorn - ASGI server
+- pydantic - Data validation
+- falkordb - Graph database client
+- graphiti-core - Temporal knowledge graph library (`/backend/graph_service.py`)
+- google-genai - Python Gemini SDK
+- python-dotenv - Environment configuration
+- python-multipart - Multipart form data handling
+- requests - HTTP client library
 
 ## Configuration
 
-### Environment Variables
+**Environment:**
+- `.env` file for API keys and configuration
+- `AI_MODEL` env var for model selection (defaults to 'glm' or 'gemini')
+- `GLM_API_KEY` for Z.ai GLM API (primary AI model)
+- `GEMINI_API_KEY` for Google Gemini (optional fallback)
+- `VITE_BACKEND_URL` for backend proxy (defaults to `/api` via Vite)
+- `QDRANT_URL` for vector database (defaults to `http://localhost:6333`)
 
-```
-API_KEY=<gemini-api-key>           # Required: Google Gemini API key
-AI_MODEL=gemini|glm                 # Optional: AI model selector
-QDRANT_URL=http://localhost:6333   # Optional: Qdrant endpoint
-VITE_BACKEND_URL=http://127.0.0.1:8000  # Optional: Backend URL
-```
+**Build:**
+- `tsconfig.json` - TypeScript configuration (ES2022 target, JSX, path aliases)
+- `vite.config.ts` - Vite build configuration with proxy
+- `index.html` - HTML entry point with CDN import maps (non-standard)
 
-### TypeScript Config
+## Platform Requirements
 
-**File**: `tsconfig.json`
+**Development:**
+- Node.js with npm
+- Python 3.x (for optional backend)
+- Docker (for FalkorDB and Qdrant services via `docker-compose.yml`)
 
-```json
-{
-  "compilerOptions": {
-    "target": "ES2020",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "moduleResolution": "node"
-  }
-}
-```
-
-### Vite Config
-
-**File**: `vite.config.ts`
-
-- React plugin enabled
-- Dev server proxy: `/api` → backend
-
-### Import Maps
-
-**File**: `index.html`
-
-Non-standard: Uses esm.sh CDN imports
-- `d3`: https://esm.sh/d3@^7.9.0
-- `@google/genai`: https://esm.sh/@google/genai@^1.33.0
-- `react`: https://esm.sh/react@^19.2.1
-
-## Development Scripts
-
-```bash
-npm run dev     # Start dev server (port 5173, proxies API to :8000)
-npm run build   # TypeScript check + Vite build
-npm run preview # Preview production build
-```
-
-## Build Artifacts
-
-- **Output**: `dist/` directory
-- **Entry**: `index.html` → `src/index.tsx` → `src/App.tsx`
-- **Bundle**: Vite handles bundling with esm.sh imports
+**Production:**
+- Static hosting for frontend (Vite build output in `/dist`)
+- Optional: Python backend server (port 8000)
+- Optional: Docker for containerized services (FalkorDB on port 6379, Qdrant on port 6333)
 
 ---
 
-*Stack analysis: 2026-01-31*
+*Stack analysis: 2026-02-06*

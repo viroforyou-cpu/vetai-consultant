@@ -1,186 +1,159 @@
 # Architecture
 
-**Analysis Date:** 2026-01-31
+**Analysis Date:** 2025-02-06
 
-## Architectural Pattern
+## Pattern Overview
 
-**Pattern**: Service-Oriented Frontend with AI Integration
+**Overall:** Client-Centric SPA with Optional Backend Services
 
-The application follows a service-oriented architecture where React components consume service modules that handle external API interactions (Gemini AI, Qdrant vector DB, optional backend).
+**Key Characteristics:**
+- Frontend-focused React application that can run standalone
+- Progressive enhancement: core features work without backend
+- Optimistic UI updates with background persistence
+- Service layer abstraction for multiple AI providers
+- Graceful degradation when external services are unavailable
 
 ## Layers
 
-### 1. Presentation Layer (React Components)
+**Presentation Layer (React Components):**
+- Purpose: User interface and interaction
+- Location: `/src/components/`
+- Contains: View components for each feature (Upload, Search, Graph, Analytics, History)
+- Depends on: Service layer for business logic, types for data structures
+- Used by: App.tsx main component
 
-**Location**: `src/components/`
+**State Management Layer:**
+- Purpose: Application state and data orchestration
+- Location: `/src/App.tsx` (single source of truth)
+- Contains: `consultations` array, view state, language preference, dark mode
+- Depends on: Service layer for persistence and AI operations
+- Used by: All view components via props
 
-**Responsibilities**:
-- UI rendering and user interaction
-- Form handling and validation
-- State management (local useState)
-- Optimistic UI updates
+**Service Layer:**
+- Purpose: External API integration and business logic
+- Location: `/src/services/`
+- Contains: AI services, vector database, backend communication
+- Depends on: External APIs (Google Gemini, Qdrant), backend server
+- Used by: Presentation layer for all non-UI operations
 
-**Components**:
-- `UploadView.tsx` - Consultation upload form
-- `SearchView.tsx` - Semantic search interface
-- `GraphView.tsx` - D3.js knowledge graph visualization
-- `AnalyticsView.tsx` - Analytics dashboard
-- `HistoryView.tsx` - Consultation history list
-- `AIModelSelector.tsx` - AI model selection UI
-
-**Pattern**: Function components with hooks, no global state management
-
-### 2. Service Layer (TypeScript Modules)
-
-**Location**: `src/services/`
-
-**Services**:
-- `aiService.ts` - AI service selector (Gemini/GLM routing)
-- `geminiService.ts` - Google Gemini AI operations
-- `glmService.ts` - GLM AI operations
-- `qdrantService.ts` - Vector database operations
-- `backendService.ts` - Backend API communication
-- `graphService.ts` - Graph data processing
-
-**Pattern**: Plain TypeScript modules with named exports, Promise-based async functions
-
-### 3. Data Layer (Types + Persistence)
-
-**Location**: `types.ts`, `App.tsx` state management
-
-**Storage**:
-- LocalStorage for offline cache
-- Optional backend for file I/O
-- Qdrant for vector search
+**Backend Layer (Optional Python FastAPI):**
+- Purpose: File I/O, graph database operations, persistent storage
+- Location: `/backend/`
+- Contains: FastAPI endpoints, Graphiti integration, FalkorDB client
+- Depends on: FalkorDB for graph storage, file system for JSON persistence
+- Used by: Frontend via `/api` proxy routes
 
 ## Data Flow
 
-### Consultation Upload Flow
+**Consultation Upload Pipeline:**
 
-```
-User Input (UploadView)
-    ↓
-Optimistic UI Update (instant)
-    ↓
-Parallel Async Processing:
-    ├→ Audio Transcription (Gemini AI)
-    ├→ Data Extraction (Gemini AI)
-    └→ Embedding Generation (Gemini AI)
-    ↓
-Background Saves:
-    ├→ LocalStorage
-    ├→ Backend API (optional)
-    └→ Qdrant Vector DB
-    ↓
-Update State with Final Results
-```
+1. User fills form and uploads audio file in UploadView component
+2. File read as base64 and sent to AI service for transcription
+3. Transcription returned via `transcribeAndSummarize()` from aiService
+4. Clinical data extraction via `extractClinicalData()` from aiService
+5. Optimistic UI update: consultation added to state immediately
+6. Background parallel operations:
+   - Embedding generation via `getEmbedding()`
+   - Disk persistence via `saveConsultationToDisk()`
+   - Vector upsert to Qdrant via `upsertConsultation()`
 
-### Semantic Search Flow
+**Search Pipeline:**
 
-```
-User Query (SearchView)
-    ↓
-Query Embedding (Gemini AI)
-    ↓
-Vector Search:
-    ├→ Qdrant (primary)
-    └→ Local Fallback (if Qdrant unavailable)
-    ↓
-AI-Generated Answer (Gemini AI)
-    ↓
-Display Results with Citations
-```
+1. User enters query in SearchView component
+2. Query text → embedding via `getEmbedding()` from aiService
+3. Vector search via `searchLocalVectors()` (Qdrant or browser fallback)
+4. Results filtered from consultations array
+5. AI-generated answer via `generateAnswerFromContext()` from aiService
+6. Results displayed with citations
+
+**Graph Pipeline:**
+
+1. User selects patient from dropdown in GraphView component
+2. Graph data fetched via `getPatientKnowledgeGraph()` from graphService
+3. If unavailable, mock graph generated locally from consultations
+4. D3.js force-directed graph rendered
+5. User questions routed via `askGraphQuestion()` to backend
+
+**State Management:**
+- `consultations` array in App.tsx is single source of truth
+- LocalStorage acts as backup/offline cache
+- No global state management library (useState + useEffect pattern)
+- Embeddings stored inline in consultation objects for local search fallback
 
 ## Key Abstractions
 
-### AI Service Selector Pattern
+**AI Provider Abstraction:**
+- Purpose: Switch between Gemini and GLM models without component changes
+- Examples: `/src/services/aiService.ts`, `/src/services/geminiService.ts`, `/src/services/glmService.ts`
+- Pattern: Strategy pattern - `getCurrentAIModel()` determines which service to call
 
-**Location**: `src/services/aiService.ts`
+**Vector Search Abstraction:**
+- Purpose: Semantic search with graceful degradation
+- Examples: `/src/services/qdrantService.ts`
+- Pattern: Fallback pattern - try Qdrant first, fall back to local cosine similarity
 
-**Purpose**: Route AI requests to appropriate provider (Gemini or GLM)
+**Consultation Data Model:**
+- Purpose: Unified representation of veterinary consultation records
+- Examples: `/src/types.ts` - `Consultation`, `ExtractedInfo`, `AdminData`, `ClinicalData`
+- Pattern: Rich domain model with optional AI-generated fields
 
-**Pattern**:
-```typescript
-export const getEmbedding = async (text: string): Promise<number[]> => {
-  const model = getCurrentAIModel();
-  if (model === 'glm') {
-    return glmService.getGLMEmbedding(text);
-  }
-  return geminiService.getEmbedding(text);
-};
-```
-
-### Vector Search with Fallback
-
-**Location**: `src/services/qdrantService.ts`
-
-**Pattern**: Try Qdrant first, fall back to local browser search
-
-```typescript
-export const searchQdrant = async (vector: number[]): Promise<string[]> => {
-  if (!await isQdrantAvailable()) return [];
-  // ... Qdrant search
-};
-
-export const searchLocalVectors = (queryVector: number[], consultations: Consultation[]): string[] => {
-  // Browser-based cosine similarity
-};
-```
-
-### Service Detection
-
-**Location**: `src/services/backendService.ts`
-
-**Pattern**: Auto-detect environment (dev vs prod)
-
-```typescript
-const BASE_URL = window.location.port === '8000'
-  ? ''
-  : process.env.VITE_BACKEND_URL || 'http://127.0.0.1:8000';
-```
+**Knowledge Graph Model:**
+- Purpose: Patient relationship visualization
+- Examples: `/src/types.ts` - `GraphNode`, `GraphLink`, `KnowledgeGraphData`
+- Pattern: D3.js-compatible force-directed graph structure
 
 ## Entry Points
 
-### Primary Entry Point
+**Frontend Entry Point:**
+- Location: `/src/index.tsx`
+- Triggers: Application bootstrap on page load
+- Responsibilities: Mount React app to DOM, load styles
 
-**File**: `index.html` → `src/index.tsx` → `src/App.tsx`
+**Application Root:**
+- Location: `/src/App.tsx`
+- Triggers: Called by index.tsx on render
+- Responsibilities: State management, routing, service initialization, mock data loading
 
-**Flow**:
-1. HTML loads with Tailwind CDN and import maps
-2. `src/index.tsx` mounts React to `#root`
-3. `src/App.tsx` initializes services and manages application state
+**Backend Entry Point (Optional):**
+- Location: `/backend/main.py`
+- Triggers: FastAPI server startup (port 8000)
+- Responsibilities: File I/O endpoints, graph service health, consultation CRUD
 
-### Service Initialization
+**Build Entry Point:**
+- Location: `/vite.config.ts`
+- Triggers: `npm run dev` or `npm run build`
+- Responsibilities: Vite configuration, dev server setup, API proxy to backend
 
-**Location**: `src/App.tsx` (useEffect)
+## Error Handling
 
-**Order**:
-1. Load consultations from LocalStorage
-2. Initialize Qdrant connection
-3. Check for missing embeddings
-4. Register service worker (if available)
+**Strategy:** Graceful degradation with user feedback
 
-## State Management
+**Patterns:**
+- Qdrant failures: Silent fallback to browser-based vector search with console warning
+- AI service failures: User-visible alerts via `alert()` and status messages
+- Backend failures: User-visible alerts with helpful messages
+- Embedding generation failures: Logged but doesn't block save operations
+- Network failures: Fail-fast (no retry logic implemented)
 
-**Pattern**: Local component state with prop drilling
+**Service Availability Checks:**
+- `isQdrantAvailable()` in qdrantService.ts checks Qdrant health before operations
+- `checkModelAvailability()` in aiService.ts validates API keys
+- `getGraphHealth()` in graphService.ts checks Graphiti/FalkorDB availability
 
-**Main State** (`src/App.tsx`):
-- `consultations` - Array of all consultations (single source of truth)
-- `currentView` - Current active view
-- `language` - Selected language (en/es)
-- `darkMode` - Dark mode toggle
-- `aiModel` - Selected AI model
+## Cross-Cutting Concerns
 
-**No Global State Management**: No Redux, Zustand, or Context API used
+**Logging:** Console-based logging with `console.log()`, `console.warn()`, `console.error()`. No structured logging framework.
 
-## Module Boundaries
+**Validation:** Manual validation in components (e.g., checking `!query.trim()` before search). No centralized validation layer.
 
-**Services**: Pure TypeScript modules, no React dependencies
-**Components**: React components, consume services via imports
-**Types**: Centralized in `types.ts`
+**Authentication:** Not implemented. Application is single-user, no user accounts or authentication.
 
-**Import Pattern**: Relative imports only (`../`, `./`)
+**Internationalization:** Binary language toggle ('en' | 'es'). All AI prompts include language context. No i18n framework.
+
+**Dark Mode:** Class-based strategy using `dark` class on `<html>` element. All components use `dark:` Tailwind prefix for dark mode styles.
+
+**API Key Management:** Environment variables only (`GEMINI_API_KEY`, `GLM_API_KEY`). No secrets management.
 
 ---
 
-*Architecture analysis: 2026-01-31*
+*Architecture analysis: 2025-02-06*
