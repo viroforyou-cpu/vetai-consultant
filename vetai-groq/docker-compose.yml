@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persist consultation data to your local machine
+      - ./consultation_data:/app/consultation_data
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  frontend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      # Pass the Groq Key to the frontend
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    depends_on:
+      - backend
+    volumes:
+      - /app/node_modules
+      - .:/app

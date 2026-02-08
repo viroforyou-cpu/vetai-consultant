@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./consultation_data:/app/consultation_data
+    environment:
+      - PYTHONUNBUFFERED=1
+      - API_KEY=${API_KEY}
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
+    depends_on:
+      - falkordb
+
+  frontend:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - API_KEY=${API_KEY}
+      - VITE_BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    volumes:
+      - /app/node_modules
+      - .:/app
+
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - falkordb_data:/var/lib/redis
+
+volumes:
+  falkordb_data:

@@ -1,18 +1,66 @@
-# File: /Users/user_name/Desktop/Dev/yt-ZAI/test_claude/.gitignore
-# Prevent sensitive files from being committed to git
 
-# Secrets and credentials
+# VetAI Consultant - .gitignore
+
+# Secrets and credentials - NEVER COMMIT THESE
 secrets.env
 .env
 .env.local
 .env.*.local
+*.key
+*.token
 
-# Claude Code configuration
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+*.log
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code
 .claude/
 .claude.json
 .claude.json.backup
 
-# API keys and tokens
-*.key
-*.token
+# Playwright MCP
+.playwright-mcp/
 
+# Serena
+.serena/
+
+# Temporary and cache files
+*.tmp
+*.cache
+.cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Python (backend)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+
+# Test coverage
+coverage/
+*.lcov
+
+# Misc TODO files (planning is tracked, but old todos)
+TO-DOS.md
+node_modules
+veterinary-consultation/
+vetai-groq/
+vet-groq/

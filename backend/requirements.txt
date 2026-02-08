@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+python-multipart
+falkordb
+graphiti-core
+google-genai
+python-dotenv
+requests
+asyncio

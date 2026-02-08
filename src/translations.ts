@@ -1,0 +1,352 @@
+// Language constants for VetAI Consultant bilingual support
+
+export const translations = {
+  en: {
+    // Navigation
+    nav: {
+      newConsultation: 'New Consultation',
+      appointments: 'Appointments',
+      searchRecords: 'Search Records',
+      patientGraph: 'Patient Graph',
+      analytics: 'Analytics',
+    },
+    // Sidebar
+    sidebar: {
+      title: 'VetAI',
+      subtitle: 'Gemini Edition',
+      lightMode: 'Light Mode',
+      darkMode: 'Dark Mode',
+      loadMockData: 'Load Mock Data',
+      status: 'Status',
+      online: 'Online',
+      records: 'Recs',
+    },
+    // Upload View
+    upload: {
+      title: 'New Consultation',
+      subtitle: 'Upload audio to generate notes and update the patient graph.',
+      vetName: 'Vet Name',
+      ownerName: 'Owner Name',
+      patientName: 'Patient Name',
+      uploadDisabled: 'Enter Vet Name, Owner Name, and Patient Name to enable file upload',
+      transcription: 'Transcription',
+      aiSummary: 'AI Summary',
+      transcriptionPlaceholder: 'Transcription will appear here...',
+      summaryPlaceholder: 'Summary will appear here...',
+      extractClinicalData: 'Extract Clinical Data',
+      saveRecord: 'Save Record',
+      // Status messages
+      statusUploading: 'Uploading & Transcribing...',
+      statusTranscriptionComplete: 'Transcription Complete.',
+      statusTranscriptionError: 'Error during transcription.',
+      statusExtracting: 'Extracting Clinical Data...',
+      statusExtracted: 'Data Extracted.',
+      statusExtractionFailed: 'Extraction failed.',
+      statusSaving: 'Saving to Database...',
+      statusSaved: 'Saved Successfully!',
+      statusSavingError: 'Error Saving.',
+    },
+    // Search View
+    search: {
+      title: 'Search Records',
+      placeholder: "Ask a clinical question (e.g. 'treatments for renal failure')...",
+      search: 'Search',
+      finding: 'Finding...',
+      aiAnswer: 'AI Answer',
+      synthesizing: 'Synthesizing answer...',
+      foundRecords: 'Found {count} Records',
+      vet: 'Vet',
+      diagnosis: 'Dx',
+      noRecords: 'No relevant records found.',
+      answerError: 'Could not generate AI answer.',
+    },
+    // Graph View
+    graph: {
+      noPatients: 'No patients found',
+      noPatientsHint: 'Load mock data or create consultations to visualize patient graphs.',
+      searchPatient: 'Search Patient ({count} available)',
+      searchPlaceholder: 'Type to filter...',
+      selectPatient: 'Select Patient',
+      selectPatientDefault: '-- Select Patient --',
+      loadGraph: 'Load Graph',
+      loading: 'Loading...',
+      filterNodeTypes: 'Filter Node Types',
+      filterHint: 'Click to toggle visibility. Patient node is always visible.',
+      nodeTypePatient: 'Patient',
+      nodeTypeVisits: 'Visits',
+      nodeTypeDiagnoses: 'Diagnoses',
+      nodeTypeTreatments: 'Treatments',
+      nodeTypePeople: 'People (Owners/Vets)',
+      noGraphData: 'No graph data found',
+      noGraphDataHint: 'No consultations found for this patient.',
+      loadMockDataHint: 'Load mock data to test with sample consultations.',
+      selectPatientHint: 'Select a patient to load the Graphiti knowledge graph with temporal context.',
+      graphitiLabel: '🧠 Graphiti Knowledge Graph',
+      askKnowledgeGraph: 'Ask the Knowledge Graph',
+      graphitiRag: 'Graphiti RAG',
+      analyzingGraph: 'Analyzing graph...',
+      askAboutRelationships: 'Ask about relationships...',
+      examples: 'Examples:',
+      exampleTreatments: '"What treatments?"',
+      exampleOwner: '"Who is the owner?"',
+      exampleVisits: '"Summarize the visits"',
+      questionPlaceholder: 'e.g., What treatments?',
+      askAi: 'Ask AI',
+      analyzing: 'Analyzing...',
+      // Node type labels
+      patient: 'Patient',
+      visit: 'Visit',
+      diagnosis: 'Diagnosis',
+      treatment: 'Treatment',
+      owner: 'Owner',
+      veterinarian: 'Veterinarian',
+    },
+    // Analytics View
+    analytics: {
+      title: 'Practice Analytics',
+      totalConsultations: 'Total Consultations',
+      uniquePatients: 'Unique Patients',
+    },
+    // Appointments View
+    appointments: {
+      title: 'Appointments',
+      subtitle: 'Manage appointments and patient scheduling',
+      newAppointment: '+ New Appointment',
+      cancel: 'Cancel',
+      // Form sections
+      patientInfo: 'Patient Information',
+      appointmentDetails: 'Appointment Details',
+      // Form fields
+      patientName: 'Patient Name *',
+      ownerName: 'Owner Name *',
+      breed: 'Breed (optional)',
+      appointmentDate: 'Appointment Date',
+      appointmentTime: 'Appointment Time',
+      duration: 'Duration',
+      appointmentType: 'Appointment Type',
+      status: 'Status',
+      reason: 'Reason for Visit *',
+      reasonPlaceholder: 'Describe the reason for the appointment...',
+      notes: 'Additional Notes (optional)',
+      notesPlaceholder: 'Any additional relevant information...',
+      // Buttons
+      scheduleAppointment: 'Schedule Appointment',
+      updateAppointment: 'Update Appointment',
+      // Types
+      typeWellness: 'Wellness',
+      typeConsultation: 'Consultation',
+      typeEmergency: 'Emergency',
+      typeFollowUp: 'Follow-up',
+      typeSurgery: 'Surgery',
+      typeVaccination: 'Vaccination',
+      typeOther: 'Other',
+      // Statuses
+      statusScheduled: 'Scheduled',
+      statusConfirmed: 'Confirmed',
+      statusCompleted: 'Completed',
+      statusCancelled: 'Cancelled',
+      statusNoShow: 'No-show',
+      // List
+      scheduledAppointments: 'Scheduled Appointments',
+      noAppointments: 'No appointments scheduled',
+      getStarted: 'Click "+ New Appointment" to get started',
+      owner: 'Owner',
+      date: 'Date',
+      time: 'Time',
+      minutes: 'min',
+      hour: 'hour',
+      hours: 'hours',
+      edit: 'Edit',
+      delete: 'Delete',
+      deleteConfirm: 'Are you sure you want to delete this appointment?',
+      requiredFields: 'Please fill in all required fields',
+    },
+    // Common
+    common: {
+      required: '*',
+      optional: '(optional)',
+    },
+  },
+
+  es: {
+    // Navigation
+    nav: {
+      newConsultation: 'Nueva Consulta',
+      appointments: 'Citas',
+      searchRecords: 'Buscar Registros',
+      patientGraph: 'Gráfico del Paciente',
+      analytics: 'Análisis',
+    },
+    // Sidebar
+    sidebar: {
+      title: 'VetAI',
+      subtitle: 'Edición Gemini',
+      lightMode: 'Modo Claro',
+      darkMode: 'Modo Oscuro',
+      loadMockData: 'Cargar Datos de Prueba',
+      status: 'Estado',
+      online: 'En línea',
+      records: 'Reg',
+    },
+    // Upload View
+    upload: {
+      title: 'Nueva Consulta',
+      subtitle: 'Sube audio para generar notas y actualizar el gráfico del paciente.',
+      vetName: 'Nombre del Veterinario',
+      ownerName: 'Nombre del Propietario',
+      patientName: 'Nombre del Paciente',
+      uploadDisabled: 'Ingresa el Nombre del Veterinario, Propietario y Paciente para habilitar la subida de archivos',
+      transcription: 'Transcripción',
+      aiSummary: 'Resumen IA',
+      transcriptionPlaceholder: 'La transcripción aparecerá aquí...',
+      summaryPlaceholder: 'El resumen aparecerá aquí...',
+      extractClinicalData: 'Extraer Datos Clínicos',
+      saveRecord: 'Guardar Registro',
+      // Status messages
+      statusUploading: 'Subiendo y Transcribiendo...',
+      statusTranscriptionComplete: 'Transcripción Completa.',
+      statusTranscriptionError: 'Error durante la transcripción.',
+      statusExtracting: 'Extrayendo Datos Clínicos...',
+      statusExtracted: 'Datos Extraídos.',
+      statusExtractionFailed: 'Extracción fallida.',
+      statusSaving: 'Guardando en la Base de Datos...',
+      statusSaved: '¡Guardado Exitosamente!',
+      statusSavingError: 'Error al Guardar.',
+    },
+    // Search View
+    search: {
+      title: 'Buscar Registros',
+      placeholder: "Haz una pregunta clínica (ej. 'tratamientos para insuficiencia renal')...",
+      search: 'Buscar',
+      finding: 'Buscando...',
+      aiAnswer: 'Respuesta IA',
+      synthesizing: 'Sintetizando respuesta...',
+      foundRecords: '{count} Registros Encontrados',
+      vet: 'Vet',
+      diagnosis: 'Dx',
+      noRecords: 'No se encontraron registros relevantes.',
+      answerError: 'No se pudo generar respuesta de la IA.',
+    },
+    // Graph View
+    graph: {
+      noPatients: 'No se encontraron pacientes',
+      noPatientsHint: 'Carga datos de prueba o crea consultas para visualizar gráficos de pacientes.',
+      searchPatient: 'Buscar Paciente ({count} disponibles)',
+      searchPlaceholder: 'Escribe para filtrar...',
+      selectPatient: 'Seleccionar Paciente',
+      selectPatientDefault: '-- Seleccionar Paciente --',
+      loadGraph: 'Cargar Gráfico',
+      loading: 'Cargando...',
+      filterNodeTypes: 'Filtrar Tipos de Nodos',
+      filterHint: 'Haz clic para alternar visibilidad. El nodo del paciente siempre es visible.',
+      nodeTypePatient: 'Paciente',
+      nodeTypeVisits: 'Visitas',
+      nodeTypeDiagnoses: 'Diagnósticos',
+      nodeTypeTreatments: 'Tratamientos',
+      nodeTypePeople: 'Personas (Propietarios/Vets)',
+      noGraphData: 'No se encontraron datos del gráfico',
+      noGraphDataHint: 'No se encontraron consultas para este paciente.',
+      loadMockDataHint: 'Carga datos de prueba para probar con consultas de muestra.',
+      selectPatientHint: 'Selecciona un paciente para cargar el gráfico de conocimiento Graphiti con contexto temporal.',
+      graphitiLabel: '🧠 Gráfico de Conocimiento Graphiti',
+      askKnowledgeGraph: 'Preguntar al Gráfico de Conocimiento',
+      graphitiRag: 'Graphiti RAG',
+      analyzingGraph: 'Analizando gráfico...',
+      askAboutRelationships: 'Pregunta sobre relaciones...',
+      examples: 'Ejemplos:',
+      exampleTreatments: '"¿Qué tratamientos?"',
+      exampleOwner: '"¿Quién es el propietario?"',
+      exampleVisits: '"Resumir las visitas"',
+      questionPlaceholder: 'ej. ¿Qué tratamientos?',
+      askAi: 'Preguntar a IA',
+      analyzing: 'Analizando...',
+      // Node type labels
+      patient: 'Paciente',
+      visit: 'Visita',
+      diagnosis: 'Diagnóstico',
+      treatment: 'Tratamiento',
+      owner: 'Propietario',
+      veterinarian: 'Veterinario',
+    },
+    // Analytics View
+    analytics: {
+      title: 'Análisis de la Práctica',
+      totalConsultations: 'Total de Consultas',
+      uniquePatients: 'Pacientes Únicos',
+    },
+    // Appointments View
+    appointments: {
+      title: 'Citas',
+      subtitle: 'Gestionar citas y programación de pacientes',
+      newAppointment: '+ Nueva Cita',
+      cancel: 'Cancelar',
+      // Form sections
+      patientInfo: 'Información del Paciente',
+      appointmentDetails: 'Detalles de la Cita',
+      // Form fields
+      patientName: 'Nombre del Paciente *',
+      ownerName: 'Nombre del Propietario *',
+      breed: 'Raza (opcional)',
+      appointmentDate: 'Fecha de la Cita',
+      appointmentTime: 'Hora de la Cita',
+      duration: 'Duración',
+      appointmentType: 'Tipo de Cita',
+      status: 'Estado',
+      reason: 'Motivo de la Visita *',
+      reasonPlaceholder: 'Describe el motivo de la cita...',
+      notes: 'Notas Adicionales (opcional)',
+      notesPlaceholder: 'Cualquier información adicional relevante...',
+      // Buttons
+      scheduleAppointment: 'Programar Cita',
+      updateAppointment: 'Actualizar Cita',
+      // Types
+      typeWellness: 'Revisión',
+      typeConsultation: 'Consulta',
+      typeEmergency: 'Emergencia',
+      typeFollowUp: 'Seguimiento',
+      typeSurgery: 'Cirugía',
+      typeVaccination: 'Vacunación',
+      typeOther: 'Otro',
+      // Statuses
+      statusScheduled: 'Programada',
+      statusConfirmed: 'Confirmada',
+      statusCompleted: 'Completada',
+      statusCancelled: 'Cancelada',
+      statusNoShow: 'No se presentó',
+      // List
+      scheduledAppointments: 'Citas Programadas',
+      noAppointments: 'No hay citas programadas',
+      getStarted: 'Haz clic en "+ Nueva Cita" para comenzar',
+      owner: 'Propietario',
+      date: 'Fecha',
+      time: 'Hora',
+      minutes: 'min',
+      hour: 'hora',
+      hours: 'horas',
+      edit: 'Editar',
+      delete: 'Eliminar',
+      deleteConfirm: '¿Está seguro de eliminar esta cita?',
+      requiredFields: 'Por favor complete todos los campos requeridos',
+    },
+    // Common
+    common: {
+      required: '*',
+      optional: '(opcional)',
+    },
+  },
+};
+
+export type Language = 'en' | 'es';
+
+// Helper function to get translations
+export function useTranslations(language: Language) {
+  return translations[language];
+}
+
+// Helper to replace placeholders in translation strings (e.g., {count})
+export function t(template: string, params: Record<string, string | number> = {}): string {
+  return Object.entries(params).reduce(
+    (result, [key, value]) => result.replace(new RegExp(`\\{${key}\\}`, 'g'), String(value)),
+    template
+  );
+}

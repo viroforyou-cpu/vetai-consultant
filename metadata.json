@@ -1,0 +1,5 @@
+{
+  "name": "VetAI Consultant",
+  "description": "A veterinary consultation assistant using Gemini 2.5 Flash for transcription, clinical extraction, knowledge graph generation, and literature search.",
+  "requestFramePermissions": []
+}
