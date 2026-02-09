@@ -6,6 +6,7 @@ export const translations = {
     nav: {
       newConsultation: 'New Consultation',
       appointments: 'Appointments',
+      history: 'Clinical History',
       searchRecords: 'Search Records',
       patientGraph: 'Patient Graph',
       analytics: 'Analytics',
@@ -161,6 +162,14 @@ export const translations = {
       deleteConfirm: 'Are you sure you want to delete this appointment?',
       requiredFields: 'Please fill in all required fields',
     },
+    // History View
+    history: {
+      title: 'Clinical History',
+      selectPatient: 'Select Patient',
+      selectPatientDefault: '-- Select Patient --',
+      executiveSummary: 'Executive Summary',
+      consultation: 'Consultation',
+    },
     // Common
     common: {
       required: '*',
@@ -173,6 +182,7 @@ export const translations = {
     nav: {
       newConsultation: 'Nueva Consulta',
       appointments: 'Citas',
+      history: 'Historia Clínica',
       searchRecords: 'Buscar Registros',
       patientGraph: 'Gráfico del Paciente',
       analytics: 'Análisis',
@@ -327,6 +337,14 @@ export const translations = {
       delete: 'Eliminar',
       deleteConfirm: '¿Está seguro de eliminar esta cita?',
       requiredFields: 'Por favor complete todos los campos requeridos',
+    },
+    // History View
+    history: {
+      title: 'Historia Clínica',
+      selectPatient: 'Seleccionar Paciente',
+      selectPatientDefault: '-- Seleccionar Paciente --',
+      executiveSummary: 'Resumen Ejecutivo',
+      consultation: 'Consulta',
     },
     // Common
     common: {

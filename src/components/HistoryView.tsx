@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { generatePatientExecutiveSummary } from '../services/geminiService';
+import { useTranslations } from '../translations';
 
 export default function HistoryView({ consultations, language }: any) {
+  const t = useTranslations(language);
   const [selectedPatient, setSelectedPatient] = useState('');
   const [summary, setSummary] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,16 +19,16 @@ export default function HistoryView({ consultations, language }: any) {
      } else {
          setSummary('');
      }
-  }, [selectedPatient]);
+  }, [selectedPatient, history, language]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-12">
-        <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Clinical History</h2>
-        
+        <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">{t.history.title}</h2>
+
         <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow border border-slate-200 dark:border-slate-700">
-            <label className="block text-sm font-bold text-slate-500 mb-2">Select Patient</label>
+            <label className="block text-sm font-bold text-slate-500 mb-2">{t.history.selectPatient}</label>
             <select value={selectedPatient} onChange={e=>setSelectedPatient(e.target.value)} className="w-full p-3 border rounded-lg dark:bg-slate-900 dark:text-white dark:border-slate-600">
-                <option value="">-- Select Patient --</option>
+                <option value="">{t.history.selectPatientDefault}</option>
                 {patients.map((p:any) => <option key={p} value={p}>{p}</option>)}
             </select>
         </div>
@@ -35,7 +37,7 @@ export default function HistoryView({ consultations, language }: any) {
             <>
                 <div className="bg-teal-50 dark:bg-teal-900/20 p-6 rounded-xl border border-teal-200 dark:border-teal-800">
                     <h3 className="text-teal-800 dark:text-teal-300 font-bold mb-3 flex items-center">
-                        <span className="text-xl mr-2">📋</span> Executive Summary
+                        <span className="text-xl mr-2">📋</span> {t.history.executiveSummary}
                     </h3>
                     {loading ? (
                         <div className="animate-pulse space-y-2">
@@ -56,7 +58,7 @@ export default function HistoryView({ consultations, language }: any) {
                                     <div className="font-bold text-lg text-slate-800 dark:text-slate-100">{new Date(c.timestamp).toLocaleDateString()}</div>
                                     <div className="text-xs font-bold uppercase text-slate-400">{c.vetName}</div>
                                 </div>
-                                <div className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-2">{c.extractedData?.clinical?.diagnosis || "Consultation"}</div>
+                                <div className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-2">{c.extractedData?.clinical?.diagnosis || t.history.consultation}</div>
                                 <p className="text-slate-600 dark:text-slate-300 text-sm">{c.summary}</p>
                             </div>
                         </div>

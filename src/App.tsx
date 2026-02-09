@@ -5,6 +5,7 @@ import GraphView from './components/GraphView';
 import SearchView from './components/SearchView';
 import AnalyticsView from './components/AnalyticsView';
 import AppointmentView from './components/AppointmentView';
+import HistoryView from './components/HistoryView';
 import { initQdrant, upsertConsultation } from './services/qdrantService';
 import { saveConsultationToDisk, loadConsultationsFromDisk } from './services/backendService';
 import { getEmbedding } from './services/geminiService';
@@ -278,6 +279,13 @@ const App: React.FC = () => {
               <path d="M12 17v2M12 11v1" strokeLinecap="round"/>
             </svg>
           } />
+          <NavButton id="history" label={t.nav.history} icon={
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 8v4l3 3" strokeLinecap="round" strokeLinejoin="round"/>
+              <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" strokeLinecap="round"/>
+            </svg>
+          } />
           <NavButton id="search" label={t.nav.searchRecords} icon="🔍" />
           <NavButton id="graph" label={t.nav.patientGraph} icon="🕸️" />
           <NavButton id="analytics" label={t.nav.analytics} icon="📊" />
@@ -308,6 +316,7 @@ const App: React.FC = () => {
         <div className="max-w-7xl mx-auto p-8">
           {view === 'upload' && <UploadView onSave={handleSave} language={language} setIsProcessing={setIsProcessing} />}
           {view === 'appointment' && <AppointmentView language={language} />}
+          {view === 'history' && <HistoryView consultations={consultations} language={language} />}
           {view === 'search' && <SearchView consultations={consultations} language={language} />}
           {view === 'graph' && <GraphView consultations={consultations} language={language} />}
           {view === 'analytics' && <AnalyticsView consultations={consultations} language={language} />}
