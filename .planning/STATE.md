@@ -47,6 +47,7 @@ None yet.
 
 ### Pending Todos
 
+- **Implement Docker container deployment for full app distribution** (tooling) - Package app for easy distribution to non-technical users
 - **Implement bilingual support for English and Spanish** (ui) - Comprehensive language support across all components
 - **Push app to git and github deployment** (tooling) - Step-by-step guide for GitHub repo setup, .gitignore verification, and initial push
 
