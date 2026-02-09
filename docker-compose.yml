@@ -14,7 +14,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "80:80"
+      - "8080:80"
     environment:
       # API key passed to frontend for Gemini AI calls
       - API_KEY=${API_KEY:-}
@@ -43,7 +43,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       # Python environment
       - PYTHONUNBUFFERED=1
@@ -51,6 +51,9 @@ services:
       - API_KEY=${API_KEY:-}
       # Qdrant connection (internal Docker network)
       - QDRANT_URL=http://qdrant:6333
+      # FalkorDB connection for Graphiti
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
       # AI Model selection
       - AI_MODEL=${AI_MODEL:-gemini}
     volumes:
@@ -58,6 +61,7 @@ services:
       - consultation_data:/app/consultation_data
     depends_on:
       - qdrant
+      - falkordb
     networks:
       - vetai-network
     restart: unless-stopped
@@ -67,6 +71,20 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+
+  # -------------------------------------------------------------------------
+  # FalkorDB - Graph database for Graphiti temporal knowledge graphs
+  # -------------------------------------------------------------------------
+  falkordb:
+    image: falkordb/falkordb:latest
+    ports:
+      - "6380:6379"
+    volumes:
+      # Persist graph data
+      - falkordb_data:/data
+    networks:
+      - vetai-network
+    restart: unless-stopped
 
   # -------------------------------------------------------------------------
   # Qdrant - Vector Database for semantic search
@@ -82,7 +100,7 @@ services:
     environment:
       # Qdrant configuration
       - QDRANT__SERVICE__GRPC_PORT=6334
-      - Qdrant allows anonymous access for local development
+      # Qdrant allows anonymous access for local development
       - QDRANT__SERVICE__ENABLE_CORS=true
     networks:
       - vetai-network
@@ -102,4 +120,6 @@ volumes:
   consultation_data:
     driver: local
   qdrant_data:
+    driver: local
+  falkordb_data:
     driver: local

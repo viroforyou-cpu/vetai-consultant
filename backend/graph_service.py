@@ -10,28 +10,33 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 from pathlib import Path
 
+# Configure logging FIRST
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Graphiti imports
+GRAPHITI_AVAILABLE = False
+Graphiti = None
+LLMClient = None
+generate_uuid = None
+
 try:
     from graphiti_core import Graphiti
     from graphiti_core.llm_client import LLMClient
     from graphiti_core.utils.uuid_utils import generate_uuid
     GRAPHITI_AVAILABLE = True
-except ImportError:
-    GRAPHITI_AVAILABLE = False
-    Graphiti = None
-    LLMClient = None
+except ImportError as e:
+    logger.warning(f"graphiti-core not available: {e}")
 
 # FalkorDB imports
+FALKORDB_AVAILABLE = False
+FalkorGraph = None
+
 try:
     from falkordb import Graph as FalkorGraph
     FALKORDB_AVAILABLE = True
-except ImportError:
-    FALKORDB_AVAILABLE = False
-    FalkorGraph = None
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+except ImportError as e:
+    logger.warning(f"falkordb not available: {e}")
 
 # Configuration
 FALKORDB_HOST = os.getenv("FALKORDB_HOST", "localhost")
@@ -42,27 +47,39 @@ GRAPH_NAME = os.getenv("GRAPHITI_GRAPH_NAME", "vetai_knowledge")
 GEMINI_API_KEY = os.getenv("API_KEY", "")
 
 
-class GeminiLLMClient(LLMClient):
-    """Gemini LLM client for Graphiti."""
+# Only define GeminiLLMClient if graphiti is available
+if GRAPHITI_AVAILABLE and LLMClient is not None:
 
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=api_key)
-            self.genai = genai
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
-        except ImportError:
-            logger.error("google.generativeai not installed")
+    class GeminiLLMClient(LLMClient):
+        """Gemini LLM client for Graphiti."""
 
-    async def generate_completion(self, prompt: str) -> str:
-        """Generate completion from prompt."""
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            logger.error(f"Gemini LLM error: {e}")
-            raise
+        def __init__(self, api_key: str):
+            self.api_key = api_key
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                self.genai = genai
+                self.model = genai.GenerativeModel('gemini-2.5-flash')
+            except ImportError:
+                logger.error("google.generativeai not installed")
+
+        async def generate_completion(self, prompt: str) -> str:
+            """Generate completion from prompt."""
+            try:
+                response = self.model.generate_content(prompt)
+                return response.text
+            except Exception as e:
+                logger.error(f"Gemini LLM error: {e}")
+                raise
+else:
+    # Create a dummy class when graphiti is not available
+    class GeminiLLMClient:
+        """Dummy LLM client when graphiti-core is not available."""
+        def __init__(self, api_key: str):
+            logger.warning("GeminiLLMClient initialized but graphiti-core not available")
+
+        async def generate_completion(self, prompt: str) -> str:
+            raise NotImplementedError("Graphiti-core not available")
 
 
 # Global Graphiti instance

@@ -1,10 +1,9 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 python-multipart
 falkordb
 graphiti-core
-google-genai
+google-generativeai
 python-dotenv
 requests
-asyncio
