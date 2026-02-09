@@ -258,7 +258,7 @@ const AppointmentView: React.FC<AppointmentViewProps> = ({ language }) => {
                     <option value="wellness">{typeLabels.wellness}</option>
                     <option value="consultation">{typeLabels.consultation}</option>
                     <option value="emergency">{typeLabels.emergency}</option>
-                    <option value="follow-up">{typeLabels.followup}</option>
+                    <option value="follow-up">{typeLabels['follow-up']}</option>
                     <option value="surgery">{typeLabels.surgery}</option>
                     <option value="vaccination">{typeLabels.vaccination}</option>
                     <option value="other">{typeLabels.other}</option>
@@ -273,7 +273,7 @@ const AppointmentView: React.FC<AppointmentViewProps> = ({ language }) => {
                   <option value="confirmed">{statusLabels.confirmed}</option>
                   <option value="completed">{statusLabels.completed}</option>
                   <option value="cancelled">{statusLabels.cancelled}</option>
-                  <option value="no-show">{statusLabels.noShow}</option>
+                  <option value="no-show">{statusLabels['no-show']}</option>
                 </select>
               </div>
             </div>
@@ -391,7 +391,7 @@ const AppointmentView: React.FC<AppointmentViewProps> = ({ language }) => {
                       <option value="confirmed">{statusLabels.confirmed}</option>
                       <option value="completed">{statusLabels.completed}</option>
                       <option value="cancelled">{statusLabels.cancelled}</option>
-                      <option value="no-show">{statusLabels.noShow}</option>
+                      <option value="no-show">{statusLabels['no-show']}</option>
                     </select>
                     <div className="flex gap-2">
                       <button
