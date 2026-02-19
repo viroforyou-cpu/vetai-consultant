@@ -1,6 +1,6 @@
 # =============================================================================
 # VetAI Consultant - Docker Compose Configuration
-# Production deployment with Frontend (nginx), Backend (FastAPI), and Qdrant
+# Production deployment with Frontend (nginx) and PostgreSQL (with pgvector)
 # =============================================================================
 
 version: '3.8'
@@ -13,98 +13,57 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: vetai-consultant-frontend
     ports:
-      - "8080:80"
+      - "${FRONTEND_PORT:-8080}:80"
     environment:
-      # API key passed to frontend for Gemini AI calls
-      - API_KEY=${API_KEY:-}
-      # Backend URL (internal Docker network)
-      - VITE_BACKEND_URL=http://backend:8000
-      # AI Model selection
-      - AI_MODEL=${AI_MODEL:-gemini}
+      # GLM AI Configuration (from Z.ai / ZhipuAI)
+      - VITE_GLM_API_KEY=${VITE_GLM_API_KEY:-}
+      - VITE_GLM_API_URL=${VITE_GLM_API_URL:-https://api.z.ai/api/anthropic}
+      - VITE_GLM_MODEL=${VITE_GLM_MODEL:-glm-4.7}
+      - VITE_GLM_EMBEDDING_URL=${VITE_GLM_EMBEDDING_URL:-https://api.z.ai/api/v1/embeddings}
+
+      # PostgreSQL Configuration (for direct connection if needed)
+      - VITE_POSTGRES_URL=${VITE_POSTGRES_URL:-postgresql://${POSTGRES_USER:-vetai}:${POSTGRES_PASSWORD:-vetai_dev_password}@postgres:5432/${POSTGRES_DB:-vetai}
     depends_on:
-      - backend
-      - qdrant
+      postgres:
+        condition: service_healthy
     networks:
       - vetai-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 5s
 
   # -------------------------------------------------------------------------
-  # Backend - Python FastAPI server
+  # PostgreSQL - Database with pgvector extension for vector search
   # -------------------------------------------------------------------------
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: vetai-consultant-postgres
     ports:
-      - "8001:8000"
+      - "${POSTGRES_PORT:-54324}:5432"
     environment:
-      # Python environment
-      - PYTHONUNBUFFERED=1
-      # API Key for Gemini AI
-      - API_KEY=${API_KEY:-}
-      # Qdrant connection (internal Docker network)
-      - QDRANT_URL=http://qdrant:6333
-      # FalkorDB connection for Graphiti
-      - FALKORDB_HOST=falkordb
-      - FALKORDB_PORT=6379
-      # AI Model selection
-      - AI_MODEL=${AI_MODEL:-gemini}
+      - POSTGRES_DB=${POSTGRES_DB:-vetai}
+      - POSTGRES_USER=${POSTGRES_USER:-vetai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vetai_dev_password}
     volumes:
-      # Persist consultation data
-      - consultation_data:/app/consultation_data
-    depends_on:
-      - qdrant
-      - falkordb
+      # Persist database data
+      - postgres_data:/var/lib/postgresql/data
+      # Mount migrations directory
+      - ./supabase/migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - vetai-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-vetai} -d ${POSTGRES_DB:-vetai}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
       start_period: 10s
-
-  # -------------------------------------------------------------------------
-  # FalkorDB - Graph database for Graphiti temporal knowledge graphs
-  # -------------------------------------------------------------------------
-  falkordb:
-    image: falkordb/falkordb:latest
-    ports:
-      - "6380:6379"
-    volumes:
-      # Persist graph data
-      - falkordb_data:/data
-    networks:
-      - vetai-network
-    restart: unless-stopped
-
-  # -------------------------------------------------------------------------
-  # Qdrant - Vector Database for semantic search
-  # -------------------------------------------------------------------------
-  qdrant:
-    image: qdrant/qdrant:v1.12.0
-    ports:
-      - "6333:6333"  # REST API
-      - "6334:6334"  # gRPC API
-    volumes:
-      # Persist Qdrant data
-      - qdrant_data:/qdrant/storage
-    environment:
-      # Qdrant configuration
-      - QDRANT__SERVICE__GRPC_PORT=6334
-      # Qdrant allows anonymous access for local development
-      - QDRANT__SERVICE__ENABLE_CORS=true
-    networks:
-      - vetai-network
-    restart: unless-stopped
 
 # =============================================================================
 # Networks
@@ -117,9 +76,5 @@ networks:
 # Volumes - Persist data across container restarts
 # =============================================================================
 volumes:
-  consultation_data:
-    driver: local
-  qdrant_data:
-    driver: local
-  falkordb_data:
+  postgres_data:
     driver: local

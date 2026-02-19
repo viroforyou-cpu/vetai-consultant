@@ -40,9 +40,6 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create directory for consultation data (if backend writes here)
-RUN mkdir -p /usr/share/nginx/html/consultation_data
-
 # Expose port 80 for web traffic
 EXPOSE 80
 
