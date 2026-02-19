@@ -64,8 +64,7 @@ export const askGraphQuestion = async (graph: KnowledgeGraphData, question: stri
 export const searchPubMed = async (clinicalFeatures: string, language: Language) => {
   const model = getCurrentAIModel();
   if (model === 'glm') {
-    // GLM implementation can be added later, fallback to Gemini for now
-    return geminiService.searchPubMed(clinicalFeatures, language);
+    return glmService.searchPubMedGLM(clinicalFeatures, language);
   }
   return geminiService.searchPubMed(clinicalFeatures, language);
 };

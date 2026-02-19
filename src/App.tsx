@@ -8,8 +8,15 @@ import AppointmentView from './components/AppointmentView';
 import HistoryView from './components/HistoryView';
 import { initQdrant, upsertConsultation } from './services/qdrantService';
 import { saveConsultationToDisk, loadConsultationsFromDisk } from './services/backendService';
-import { getEmbedding } from './services/geminiService';
+import { getEmbedding } from './services/aiService';
 import { useTranslations } from './translations';
+import {
+    loadConsultationsFromStorage,
+    saveConsultationToStorage,
+    isMigrationNeeded,
+    migrateFromLocalStorage,
+    checkStorageHealth
+} from './services/storageService';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('upload');
@@ -20,8 +27,44 @@ const App: React.FC = () => {
   const t = useTranslations(language);
 
   useEffect(() => {
-    loadConsultationsFromDisk().then(setConsultations);
+    // Initialize Qdrant
     initQdrant();
+
+    // Load consultations with storage service
+    loadConsultationsFromStorage().then(({ storage, consultations }) => {
+      setConsultations(consultations);
+      console.log(`Loaded ${consultations.length} consultations from ${storage}`);
+
+      // Check if migration is needed
+      isMigrationNeeded().then(needed => {
+        if (needed) {
+          console.log('Migration from localStorage is needed');
+          // Show migration prompt to user
+          const shouldMigrate = window.confirm(
+            'There are consultations in localStorage that can be migrated to the database. Migrate now?'
+          );
+          if (shouldMigrate) {
+            migrateFromLocalStorage().then(result => {
+              console.log('Migration result:', result);
+              if (result.success) {
+                alert(`Successfully migrated ${result.migrated} consultations to the database.`);
+                // Reload consultations from database
+                loadConsultationsFromStorage().then(({ consultations: reloaded }) => {
+                  setConsultations(reloaded);
+                });
+              } else {
+                alert(`Migration completed with errors:\n${result.errors.join('\n')}`);
+              }
+            });
+          }
+        }
+      });
+    });
+
+    // Check storage health on mount (for debugging)
+    checkStorageHealth().then(health => {
+      console.log('Storage health:', health);
+    });
   }, []);
 
   // Load mock data for testing
@@ -197,25 +240,27 @@ const App: React.FC = () => {
       // We do this before updating state to ensure data integrity
       let vector: number[] = [];
       try {
-          const contentToEmbed = `Patient: ${c.patientName} ${c.summary} Diagnosis: ${c.extractedData?.clinical.diagnosis}`;
-          vector = await getEmbedding(contentToEmbed);
+        const contentToEmbed = `Patient: ${c.patientName} ${c.summary} Diagnosis: ${c.extractedData?.clinical.diagnosis}`;
+        vector = await getEmbedding(contentToEmbed);
       } catch (e) {
-          console.warn("Embedding generation failed, continuing without vector", e);
+        console.warn("Embedding generation failed, continuing without vector", e);
       }
-      
+
       const toSave = { ...c, embedding: vector };
 
       // 2. Optimistic UI Update (Instant)
       setConsultations(prev => [toSave, ...prev]);
-      
-      // 3. Parallelize Background Saves (Qdrant + Disk/Graph)
+
+      // 3. Parallelize Background Saves (Storage + Qdrant)
       // We don't await these to block the user interface if they want to navigate away
       // but we do log errors.
       Promise.all([
-          saveConsultationToDisk(toSave),
-          vector.length > 0 ? upsertConsultation(toSave, vector) : Promise.resolve()
+        saveConsultationToStorage(toSave).then(({ storage }) => {
+          console.log(`Saved consultation to ${storage}`);
+        }),
+        vector.length > 0 ? upsertConsultation(toSave, vector) : Promise.resolve()
       ]).catch(err => console.error("Background save error:", err));
-      
+
     } catch (e) {
       console.error("Critical Save Error:", e);
       alert("Error processing record.");
@@ -226,11 +271,10 @@ const App: React.FC = () => {
     <button
       onClick={() => !isProcessing && setView(id)}
       disabled={isProcessing && view !== id}
-      className={`w-full text-left px-4 py-3 rounded-lg mb-1 flex items-center transition-all duration-200 font-medium ${
-        view === id
-        ? 'bg-teal-700 text-white shadow-md transform scale-105'
-        : 'text-teal-100 hover:bg-teal-800 hover:pl-5'
-      } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`w-full text-left px-4 py-3 rounded-lg mb-1 flex items-center transition-all duration-200 font-medium ${view === id
+          ? 'bg-teal-700 text-white shadow-md transform scale-105'
+          : 'text-teal-100 hover:bg-teal-800 hover:pl-5'
+        } ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       <span className="mr-3 flex-shrink-0">{typeof icon === 'string' ? <span className="text-lg">{icon}</span> : icon}</span> {label}
     </button>
@@ -243,20 +287,20 @@ const App: React.FC = () => {
           <h1 className="text-2xl font-bold text-white flex items-center gap-3 tracking-tight">
             <svg className="w-10 h-10" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
               {/* Stethoscope shape */}
-              <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="3" className="text-teal-400" fill="none"/>
-              <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2" className="text-teal-500" fill="none"/>
+              <circle cx="32" cy="32" r="28" stroke="currentColor" strokeWidth="3" className="text-teal-400" fill="none" />
+              <circle cx="32" cy="32" r="20" stroke="currentColor" strokeWidth="2" className="text-teal-500" fill="none" />
               {/* Medical cross */}
-              <rect x="28" y="16" width="8" height="32" rx="2" className="fill-white"/>
-              <rect x="16" y="28" width="32" height="8" rx="2" className="fill-white"/>
+              <rect x="28" y="16" width="8" height="32" rx="2" className="fill-white" />
+              <rect x="16" y="28" width="32" height="8" rx="2" className="fill-white" />
               {/* Heart pulse line */}
               <path d="M 12 44 Q 20 44, 24 38 Q 28 32, 32 44 Q 36 32, 40 38 Q 44 44, 52 44"
-                    stroke="currentColor" strokeWidth="2" className="text-teal-300" fill="none"/>
+                stroke="currentColor" strokeWidth="2" className="text-teal-300" fill="none" />
               {/* Paw print inside */}
-              <circle cx="32" cy="32" r="6" className="fill-teal-300"/>
-              <circle cx="32" cy="24" r="3" className="fill-teal-300"/>
-              <circle cx="38" cy="28" r="3" className="fill-teal-300"/>
-              <circle cx="38" cy="36" r="3" className="fill-teal-300"/>
-              <circle cx="26" cy="28" r="3" className="fill-teal-300"/>
+              <circle cx="32" cy="32" r="6" className="fill-teal-300" />
+              <circle cx="32" cy="24" r="3" className="fill-teal-300" />
+              <circle cx="38" cy="28" r="3" className="fill-teal-300" />
+              <circle cx="38" cy="36" r="3" className="fill-teal-300" />
+              <circle cx="26" cy="28" r="3" className="fill-teal-300" />
             </svg>
             <span>VetAI</span>
           </h1>
@@ -266,48 +310,48 @@ const App: React.FC = () => {
         <nav className="flex-1 p-4 space-y-1">
           <NavButton id="upload" label={t.nav.newConsultation} icon={
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 5v14M5 12h14" strokeLinecap="round"/>
-              <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round"/>
-              <path d="M8 12h.01M16 12h.01M12 8v.01M12 16v.01" strokeLinecap="round"/>
+              <path d="M12 5v14M5 12h14" strokeLinecap="round" />
+              <rect x="3" y="3" width="18" height="18" rx="2" strokeLinecap="round" />
+              <path d="M8 12h.01M16 12h.01M12 8v.01M12 16v.01" strokeLinecap="round" />
             </svg>
           } />
           <NavButton id="appointment" label={t.nav.appointments} icon={
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round"/>
-              <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round"/>
-              <circle cx="12" cy="14" r="3" fill="currentColor"/>
-              <path d="M12 17v2M12 11v1" strokeLinecap="round"/>
+              <rect x="3" y="4" width="18" height="18" rx="2" strokeLinecap="round" />
+              <path d="M16 2v4M8 2v4M3 10h18" strokeLinecap="round" />
+              <circle cx="12" cy="14" r="3" fill="currentColor" />
+              <path d="M12 17v2M12 11v1" strokeLinecap="round" />
             </svg>
           } />
           <NavButton id="history" label={t.nav.history} icon={
             <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 8v4l3 3" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" strokeLinecap="round"/>
+              <path d="M12 8v4l3 3" strokeLinecap="round" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="9" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" strokeLinecap="round" />
             </svg>
           } />
           <NavButton id="search" label={t.nav.searchRecords} icon="🔍" />
           <NavButton id="graph" label={t.nav.patientGraph} icon="🕸️" />
           <NavButton id="analytics" label={t.nav.analytics} icon="📊" />
         </nav>
-        
+
         <div className="p-6 border-t border-teal-800 bg-teal-950/50">
-             <button onClick={()=>setDarkMode(!darkMode)} className="flex items-center text-sm font-bold text-teal-300 w-full hover:text-white transition-colors mb-3">
-                 <span className="mr-2 text-lg">{darkMode ? '☀️' : '🌙'}</span>
-                 {darkMode ? t.sidebar.lightMode : t.sidebar.darkMode}
-             </button>
-             <button onClick={()=>setLanguage(language === 'en' ? 'es' : 'en')} className="flex items-center text-sm font-bold text-teal-300 w-full hover:text-white transition-colors mb-3">
-                 <span className="mr-2 text-lg">{language === 'en' ? '🇺🇸' : '🇪🇸'}</span>
-                 {language === 'en' ? 'English' : 'Español'}
-             </button>
-             <button onClick={loadMockData} className="flex items-center text-xs font-bold text-teal-400 w-full hover:text-teal-200 transition-colors mb-4 py-1">
-                 <span className="mr-2">📋</span>
-                 {t.sidebar.loadMockData}
-             </button>
-             <div className="flex items-center justify-between text-xs text-teal-500 font-mono">
-                 <span>{t.sidebar.status}: {t.sidebar.online}</span>
-                 <span>{consultations.length} {t.sidebar.records}</span>
-             </div>
+          <button onClick={() => setDarkMode(!darkMode)} className="flex items-center text-sm font-bold text-teal-300 w-full hover:text-white transition-colors mb-3">
+            <span className="mr-2 text-lg">{darkMode ? '☀️' : '🌙'}</span>
+            {darkMode ? t.sidebar.lightMode : t.sidebar.darkMode}
+          </button>
+          <button onClick={() => setLanguage(language === 'en' ? 'es' : 'en')} className="flex items-center text-sm font-bold text-teal-300 w-full hover:text-white transition-colors mb-3">
+            <span className="mr-2 text-lg">{language === 'en' ? '🇺🇸' : '🇪🇸'}</span>
+            {language === 'en' ? 'English' : 'Español'}
+          </button>
+          <button onClick={loadMockData} className="flex items-center text-xs font-bold text-teal-400 w-full hover:text-teal-200 transition-colors mb-4 py-1">
+            <span className="mr-2">📋</span>
+            {t.sidebar.loadMockData}
+          </button>
+          <div className="flex items-center justify-between text-xs text-teal-500 font-mono">
+            <span>{t.sidebar.status}: {t.sidebar.online}</span>
+            <span>{consultations.length} {t.sidebar.records}</span>
+          </div>
         </div>
       </aside>
 

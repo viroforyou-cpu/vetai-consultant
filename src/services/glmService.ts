@@ -9,6 +9,114 @@ const getGLMHeaders = () => ({
   'anthropic-version': '2023-06-01'
 });
 
+// Rate limiting configuration
+const RATE_LIMIT_CONFIG = {
+  maxRetries: 3,
+  initialDelayMs: 1000,
+  maxDelayMs: 10000,
+  backoffMultiplier: 2
+};
+
+// User-friendly error messages
+const ERROR_MESSAGES: Record<string, string> = {
+  '401': 'API key is invalid. Please check your GLM_API_KEY environment variable.',
+  '403': 'Access forbidden. Your API key may not have access to this model.',
+  '429': 'Rate limit exceeded. Please wait a moment and try again.',
+  '500': 'GLM service is temporarily unavailable. Please try again later.',
+  '502': 'GLM service is temporarily unavailable. Please try again later.',
+  '503': 'GLM service is temporarily unavailable. Please try again later.',
+  'network': 'Network error. Please check your internet connection.',
+  'timeout': 'Request timed out. Please try again.',
+  'default': 'An unexpected error occurred. Please try again.'
+};
+
+// Custom error class for GLM API errors
+export class GLMAPIError extends Error {
+  public statusCode?: number;
+  public userMessage: string;
+
+  constructor(message: string, statusCode?: number) {
+    super(message);
+    this.name = 'GLMAPIError';
+    this.statusCode = statusCode;
+    this.userMessage = statusCode
+      ? (ERROR_MESSAGES[String(statusCode)] || ERROR_MESSAGES.default)
+      : ERROR_MESSAGES.default;
+  }
+}
+
+// Get user-friendly error message from error
+function getUserFriendlyError(error: any): string {
+  if (error instanceof GLMAPIError) {
+    return error.userMessage;
+  }
+  if (error.status) {
+    return ERROR_MESSAGES[String(error.status)] || ERROR_MESSAGES.default;
+  }
+  if (error.message?.includes('network') || error.message?.includes('fetch') || error.message?.includes('ECONNREFUSED')) {
+    return ERROR_MESSAGES.network;
+  }
+  if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
+    return ERROR_MESSAGES.timeout;
+  }
+  return ERROR_MESSAGES.default;
+}
+
+// Sleep utility for delays
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Retry wrapper with exponential backoff
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string
+): Promise<T> {
+  let lastError: Error | null = null;
+  let delay = RATE_LIMIT_CONFIG.initialDelayMs;
+
+  for (let attempt = 0; attempt < RATE_LIMIT_CONFIG.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      lastError = error;
+
+      // Check if it's a rate limit error (429)
+      const isRateLimit = error.statusCode === 429 ||
+        error.status === 429 ||
+        error.message?.includes('429') ||
+        error.message?.includes('rate limit');
+
+      if (isRateLimit && attempt < RATE_LIMIT_CONFIG.maxRetries - 1) {
+        console.warn(`[GLM] Rate limited on ${operationName}, attempt ${attempt + 1}/${RATE_LIMIT_CONFIG.maxRetries}. Waiting ${delay}ms...`);
+        await sleep(delay);
+        delay = Math.min(delay * RATE_LIMIT_CONFIG.backoffMultiplier, RATE_LIMIT_CONFIG.maxDelayMs);
+        continue;
+      }
+
+      // For other errors, check if we should retry (5xx errors)
+      const isServerError = error.statusCode >= 500 || error.status >= 500;
+      if (isServerError && attempt < RATE_LIMIT_CONFIG.maxRetries - 1) {
+        console.warn(`[GLM] Server error on ${operationName}, attempt ${attempt + 1}/${RATE_LIMIT_CONFIG.maxRetries}. Waiting ${delay}ms...`);
+        await sleep(delay);
+        delay = Math.min(delay * RATE_LIMIT_CONFIG.backoffMultiplier, RATE_LIMIT_CONFIG.maxDelayMs);
+        continue;
+      }
+
+      // For client errors (4xx), don't retry
+      throw error;
+    }
+  }
+
+  // All retries exhausted
+  const friendlyMessage = getUserFriendlyError(lastError);
+  const statusCode = lastError instanceof GLMAPIError
+    ? lastError.statusCode
+    : (lastError as any)?.status;
+  throw new GLMAPIError(
+    `${operationName} failed after ${RATE_LIMIT_CONFIG.maxRetries} attempts: ${lastError?.message}`,
+    statusCode
+  );
+}
+
 // Z.ai GLM model mapping (Anthropic-compatible endpoint)
 const getGLMModel = () => {
   // Use GLM model names directly with Z.ai's Anthropic-compatible endpoint
@@ -19,96 +127,113 @@ const getGLMModel = () => {
 
 // Helper function for GLM API calls (Anthropic-compatible format)
 const callGLMAPI = async (messages: any[], useJsonFormat: boolean = false) => {
-  // Try GLM model names in order (newest to oldest)
-  const modelsToTry = [
-    'glm-4.7',
-    'glm-4.6',
-    'glm-4.5',
-    'glm-4.5-air',
-    'glm-4',
-  ];
+  return withRetry(async () => {
+    // Try GLM model names in order (newest to oldest)
+    const modelsToTry = [
+      'glm-4.7',
+      'glm-4.6',
+      'glm-4.5',
+      'glm-4.5-air',
+      'glm-4',
+    ];
 
-  let lastError: Error | null = null;
+    let lastError: Error | null = null;
 
-  for (const model of modelsToTry) {
-    try {
-      console.log(`[GLM API] Trying model: ${model}`);
+    for (const model of modelsToTry) {
+      try {
+        console.log(`[GLM API] Trying model: ${model}`);
 
-      // Extract system message and user messages
-      let systemMessage = '';
-      const userMessages: any[] = [];
+        // Extract system message and user messages
+        let systemMessage = '';
+        const userMessages: any[] = [];
 
-      for (const msg of messages) {
-        if (msg.role === 'system') {
-          systemMessage = msg.content;
-        } else {
-          userMessages.push({
-            role: msg.role,
-            content: msg.content
-          });
-        }
-      }
-
-      const requestBody: any = {
-        model: model,
-        messages: userMessages,
-        max_tokens: 2000,
-        temperature: 0.3
-      };
-
-      if (systemMessage) {
-        requestBody.system = systemMessage;
-      }
-
-      console.log(`[GLM API] Request with model ${model}:`, JSON.stringify(requestBody, null, 2));
-
-      // Use Anthropic Messages API endpoint
-      const response = await fetch(`${GLM_API_BASE_URL}/v1/messages`, {
-        method: 'POST',
-        headers: getGLMHeaders(),
-        body: JSON.stringify(requestBody)
-      });
-
-      console.log(`[GLM API] Model ${model} - Response status:`, response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`[GLM API] Model ${model} - SUCCESS!`);
-
-        // Extract content from Anthropic-format response
-        let content = '';
-        if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
-          content = data.content[0].text;
-          console.log('[GLM API] Using content[0].text (Anthropic format)');
-        } else if (data.choices && data.choices[0]?.message?.content) {
-          content = data.choices[0].message.content;
-          console.log('[GLM API] Using choices[0].message.content (OpenAI format)');
-        } else if (data.message) {
-          content = data.message;
-        } else if (data.text) {
-          content = data.text;
-        } else if (typeof data === 'string') {
-          content = data;
-        } else {
-          throw new Error(`Unknown response format: ${JSON.stringify(data)}`);
+        for (const msg of messages) {
+          if (msg.role === 'system') {
+            systemMessage = msg.content;
+          } else {
+            userMessages.push({
+              role: msg.role,
+              content: msg.content
+            });
+          }
         }
 
-        return content;
-      } else {
-        const errorText = await response.text();
-        console.warn(`[GLM API] Model ${model} failed (${response.status}):`, errorText);
-        lastError = new Error(`Model ${model} failed: ${response.status} - ${errorText}`);
+        const requestBody: any = {
+          model: model,
+          messages: userMessages,
+          max_tokens: 2000,
+          temperature: 0.3
+        };
+
+        if (systemMessage) {
+          requestBody.system = systemMessage;
+        }
+
+        console.log(`[GLM API] Request with model ${model}:`, JSON.stringify(requestBody, null, 2));
+
+        // Use Anthropic Messages API endpoint
+        const response = await fetch(`${GLM_API_BASE_URL}/v1/messages`, {
+          method: 'POST',
+          headers: getGLMHeaders(),
+          body: JSON.stringify(requestBody)
+        });
+
+        console.log(`[GLM API] Model ${model} - Response status:`, response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[GLM API] Model ${model} - SUCCESS!`);
+
+          // Extract content from Anthropic-format response
+          let content = '';
+          if (data.content && Array.isArray(data.content) && data.content[0]?.text) {
+            content = data.content[0].text;
+            console.log('[GLM API] Using content[0].text (Anthropic format)');
+          } else if (data.choices && data.choices[0]?.message?.content) {
+            content = data.choices[0].message.content;
+            console.log('[GLM API] Using choices[0].message.content (OpenAI format)');
+          } else if (data.message) {
+            content = data.message;
+          } else if (data.text) {
+            content = data.text;
+          } else if (typeof data === 'string') {
+            content = data;
+          } else {
+            throw new Error(`Unknown response format: ${JSON.stringify(data)}`);
+          }
+
+          return content;
+        } else {
+          const errorText = await response.text();
+          console.warn(`[GLM API] Model ${model} failed (${response.status}):`, errorText);
+
+          // Create appropriate error
+          if (response.status === 429) {
+            // Rate limit - will be caught by withRetry
+            const error = new GLMAPIError(`Rate limit exceeded`, response.status);
+            throw error;
+          }
+
+          lastError = new GLMAPIError(`Model ${model} failed: ${response.status} - ${errorText}`, response.status);
+          // Continue to next model
+        }
+      } catch (error) {
+        // If it's a rate limit error, throw immediately to trigger retry
+        if (error instanceof GLMAPIError && error.statusCode === 429) {
+          throw error;
+        }
+        console.warn(`[GLM API] Model ${model} error:`, error);
+        lastError = error as Error;
         // Continue to next model
       }
-    } catch (error) {
-      console.warn(`[GLM API] Model ${model} error:`, error);
-      lastError = error as Error;
-      // Continue to next model
     }
-  }
 
-  // All models failed
-  throw lastError || new Error('All GLM models failed. Check your API key and model access.');
+    // All models failed
+    if (lastError instanceof GLMAPIError) {
+      throw lastError;
+    }
+    throw new GLMAPIError('All GLM models failed. Check your API key and model access.');
+  }, 'GLM API call');
 };
 
 export const getGLMEmbedding = async (text: string): Promise<number[]> => {
@@ -328,7 +453,7 @@ export const generatePatientExecutiveSummaryGLM = async (consultations: Consulta
 
   if (consultations.length === 0) return "";
 
-  const sorted = [...consultations].sort((a,b) => a.timestamp - b.timestamp);
+  const sorted = [...consultations].sort((a, b) => a.timestamp - b.timestamp);
 
   const historyText = sorted.map(c => `
     Date: ${c.extractedData?.administrative.date || new Date(c.timestamp).toLocaleDateString()}
@@ -376,3 +501,29 @@ export const askGraphQuestionGLM = async (graph: KnowledgeGraphData, question: s
     throw error;
   }
 };
+
+// Search PubMed / veterinary literature (GLM version without Google Search grounding)
+export const searchPubMedGLM = async (clinicalFeatures: string, language: Language) => {
+  const langText = language === 'es' ? 'Spanish' : 'English';
+
+  const messages = [
+    {
+      role: "system",
+      content: `You are a veterinary research assistant with extensive knowledge of veterinary medical literature. Provide information about veterinary medical conditions, treatments, and prognosis based on your training. Respond in ${langText}.`
+    },
+    {
+      role: "user",
+      content: `Search for veterinary medical literature related to: ${clinicalFeatures}. Focus on prognosis, treatment options, and similar case studies. Provide a summary of findings and list potential sources or references that a veterinarian might consult.`
+    }
+  ];
+
+  const result = await callGLMAPI(messages, false);
+
+  return {
+    text: result,
+    sources: [] // GLM doesn't have built-in search grounding like Gemini
+  };
+};
+
+// Export error class and utility for use in other modules
+export { getUserFriendlyError };
