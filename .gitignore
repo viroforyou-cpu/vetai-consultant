@@ -71,3 +71,4 @@ node_modules
 veterinary-consultation/
 vetai-groq/
 vet-groq/
+.env.docker
