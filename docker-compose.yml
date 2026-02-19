@@ -1,6 +1,6 @@
 # =============================================================================
 # VetAI Consultant - Docker Compose Configuration
-# Production deployment with Frontend (nginx) and PostgreSQL (with pgvector)
+# Production deployment with Frontend (nginx), PostgreSQL, FalkorDB, and Backend
 # =============================================================================
 
 version: '3.8'
@@ -24,9 +24,14 @@ services:
       - VITE_GLM_EMBEDDING_URL=${VITE_GLM_EMBEDDING_URL:-https://api.z.ai/api/v1/embeddings}
 
       # PostgreSQL Configuration (for direct connection if needed)
-      - VITE_POSTGRES_URL=${VITE_POSTGRES_URL:-postgresql://${POSTGRES_USER:-vetai}:${POSTGRES_PASSWORD:-vetai_dev_password}@postgres:5432/${POSTGRES_DB:-vetai}
+      - VITE_POSTGRES_URL=${VITE_POSTGRES_URL:-postgresql://${POSTGRES_USER:-vetai}:${POSTGRES_PASSWORD:-vetai_dev_password}@postgres:5432/${POSTGRES_DB:-vetai}}
+
+      # Backend API URL (proxied through nginx)
+      - VITE_BACKEND_URL=${VITE_BACKEND_URL:-/api}
     depends_on:
       postgres:
+        condition: service_healthy
+      backend:
         condition: service_healthy
     networks:
       - vetai-network
@@ -37,6 +42,72 @@ services:
       timeout: 3s
       retries: 3
       start_period: 5s
+
+  # -------------------------------------------------------------------------
+  # Backend - FastAPI server for file I/O and graph operations
+  # -------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vetai-consultant-backend
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    environment:
+      # FalkorDB Configuration
+      - FALKORDB_HOST=falkordb
+      - FALKORDB_PORT=6379
+
+      # PostgreSQL Configuration
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-vetai}
+      - POSTGRES_USER=${POSTGRES_USER:-vetai}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-vetai_dev_password}
+
+      # Gemini API for Graphiti LLM client
+      - API_KEY=${API_KEY:-}
+
+      # Graphiti Configuration
+      - GRAPHITI_GRAPH_NAME=${GRAPHITI_GRAPH_NAME:-vetai_knowledge}
+    volumes:
+      # Persist consultation data
+      - backend_data:/app/consultation_data
+    depends_on:
+      falkordb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - vetai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # -------------------------------------------------------------------------
+  # FalkorDB - Graph database for knowledge graphs
+  # -------------------------------------------------------------------------
+  falkordb:
+    image: falkordb/falkordb:latest
+    container_name: vetai-consultant-falkordb
+    ports:
+      - "${FALKORDB_PORT:-6379}:6379"
+    volumes:
+      # Persist graph data
+      - falkordb_data:/data
+    networks:
+      - vetai-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   # -------------------------------------------------------------------------
   # PostgreSQL - Database with pgvector extension for vector search
@@ -77,4 +148,8 @@ networks:
 # =============================================================================
 volumes:
   postgres_data:
+    driver: local
+  falkordb_data:
+    driver: local
+  backend_data:
     driver: local
