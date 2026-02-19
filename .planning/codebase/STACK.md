@@ -1,95 +1,124 @@
 # Technology Stack
 
-**Analysis Date:** 2026-02-06
+**Analysis Date:** 2025-02-19
 
 ## Languages
 
 **Primary:**
-- TypeScript 5.5.3 - `/src`, `/services`, root `.tsx` files
+- TypeScript 5.5.3 - Frontend React application (`/src`)
   - Target: ES2022
   - JSX: react-jsx transform
   - Strict mode with path aliases (`@/*`)
+- JavaScript (ES2022) - Build tooling, browser runtime
 
 **Secondary:**
-- Python 3.x - `/backend` (FastAPI server, optional)
+- Python 3.x - Backend FastAPI server (`/backend/main.py`)
+- SQL - Database schema definitions (`/supabase/migrations/`)
 
 ## Runtime
 
 **Environment:**
-- Node.js (via npm) - Frontend runtime
-- Python 3.x - Backend runtime (optional, Docker or direct execution)
+- Node.js 18.x (via Docker `node:18-alpine`)
+- Python 3.x (via backend container or local execution)
 
 **Package Manager:**
-- npm - Frontend dependencies
-- pip - Backend dependencies (via `/backend/requirements.txt`)
+- npm (Node.js)
+- pip (Python)
 - Lockfile: `package-lock.json` present
 
 ## Frameworks
 
 **Core:**
-- React 18.3.1 - UI framework (`/src/App.tsx`, `/src/components/`)
-- Vite 5.3.3 - Build tool and dev server (`vite.config.ts`)
-- FastAPI (Python) - Optional backend API server (`/backend/main.py`)
+- React 18.3.1 - UI framework
+- FastAPI - Python backend web framework
+- Vite 5.3.3 - Frontend build tool and dev server
 
 **Testing:**
 - Not detected
 
 **Build/Dev:**
 - @vitejs/plugin-react 4.3.1 - React plugin for Vite
-- esm.sh CDN imports - Non-standard dependency loading via `index.html` import maps
+- TypeScript 5.5.3 - Type checking and compilation
+- Tailwind CSS 3.4.4 - Utility-first CSS framework
+- PostCSS 8.4.38 - CSS processing
+- Autoprefixer 10.4.19 - CSS vendor prefixing
+- nginx:alpine - Production web server
 
 ## Key Dependencies
 
 **Critical:**
-- @google/genai 0.2.0 - Google Gemini AI SDK for embeddings, transcription, structured data extraction
+- @google/genai 0.2.0 - Google Gemini AI SDK for transcription, embeddings, and AI features
   - Model: `gemini-2.5-flash` for generation
-  - Model: `text-embedding-004` for 768-dimension vectors
-- d3 7.9.0 - Data visualization for knowledge graphs (`/src/components/GraphView.tsx`)
+  - Model: `text-embedding-004` for embeddings
+- @supabase/supabase-js 2.95.3 - Supabase client for database and vector search
+- d3 7.9.0 - Data visualization for knowledge graphs
+- react 18.3.1 / react-dom 18.3.1 - Core React libraries
+- lucide-react 0.400.0 - Icon library
 
 **Infrastructure:**
-- lucide-react 0.400.0 - Icon library for UI
-- tailwindcss 3.4.4 - Utility-first CSS framework (loaded via CDN in `index.html`)
-- autoprefixer 10.4.19 - CSS post-processing
-- postcss 8.4.38 - CSS transformation
-
-**Python Backend (optional):**
-- fastapi - Backend API framework (`/backend/main.py`)
-- uvicorn - ASGI server
-- pydantic - Data validation
-- falkordb - Graph database client
-- graphiti-core - Temporal knowledge graph library (`/backend/graph_service.py`)
-- google-genai - Python Gemini SDK
+- fastapi - Python web framework for backend API
+- uvicorn - ASGI server for Python FastAPI
+- pydantic - Data validation for Python models
+- falkordb - Graph database client for knowledge graphs
+- graphiti-core - Temporal knowledge graph service
+- google-generativeai - Alternative Google AI client (Python backend)
 - python-dotenv - Environment configuration
 - python-multipart - Multipart form data handling
 - requests - HTTP client library
 
+**Development:**
+- @types/d3 7.4.3 - TypeScript definitions for D3
+- @types/node 25.0.0 - TypeScript definitions for Node
+- @types/react 18.3.3 - TypeScript definitions for React
+- @types/react-dom 18.3.0 - TypeScript definitions for React DOM
+- supabase 2.76.8 - Supabase CLI for local development
+
 ## Configuration
 
 **Environment:**
-- `.env` file for API keys and configuration
-- `AI_MODEL` env var for model selection (defaults to 'glm' or 'gemini')
-- `GLM_API_KEY` for Z.ai GLM API (primary AI model)
-- `GEMINI_API_KEY` for Google Gemini (optional fallback)
-- `VITE_BACKEND_URL` for backend proxy (defaults to `/api` via Vite)
-- `QDRANT_URL` for vector database (defaults to `http://localhost:6333`)
+- Configured via `.env` file (not committed to git)
+- Example configuration: `.env.docker.example`
+- Vite environment loading via `loadEnv()` in `vite.config.ts`
+- Python backend uses `python-dotenv` for environment loading
+
+**Key configs required:**
+- `AI_MODEL` - Model selection: 'gemini' or 'glm' (default: 'gemini')
+- `GLM_API_KEY` - ZhipuAI/Z.ai API key for GLM models
+- `GEMINI_API_KEY` - Google Gemini API key
+- `VITE_SUPABASE_URL` - Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `API_KEY` - Legacy fallback (maps to GLM_API_KEY)
+- `VITE_BACKEND_URL` - Optional backend URL override (default: http://127.0.0.1:8000)
+- `QDRANT_URL` - Optional Qdrant URL (default: http://localhost:6333)
 
 **Build:**
-- `tsconfig.json` - TypeScript configuration (ES2022 target, JSX, path aliases)
-- `vite.config.ts` - Vite build configuration with proxy
-- `index.html` - HTML entry point with CDN import maps (non-standard)
+- `vite.config.ts` - Vite build configuration with React plugin
+- `tsconfig.json` - TypeScript compiler configuration (target: ES2022)
+- `tailwind.config.js` - Tailwind CSS configuration with dark mode
+- `postcss.config.js` - PostCSS configuration for Tailwind/Autoprefixer
+- `Dockerfile` - Multi-stage Docker build (Node build -> nginx serve)
+- `docker-compose.yml` - Multi-container orchestration
+- `nginx.conf` - nginx reverse proxy configuration
+- `supabase/config.toml` - Supabase CLI configuration for local development
 
 ## Platform Requirements
 
 **Development:**
-- Node.js with npm
-- Python 3.x (for optional backend)
-- Docker (for FalkorDB and Qdrant services via `docker-compose.yml`)
+- Node.js 18+ for frontend development
+- Python 3.x for backend (optional - app can run frontend-only)
+- Docker & Docker Compose for containerized development
+- Supabase CLI (`npx supabase`) for local database
 
 **Production:**
-- Static hosting for frontend (Vite build output in `/dist`)
-- Optional: Python backend server (port 8000)
-- Optional: Docker for containerized services (FalkorDB on port 6379, Qdrant on port 6333)
+- Container deployment via Docker Compose
+- nginx for serving static frontend assets
+- External services required: Supabase (or self-hosted), AI provider API
+
+**Deployment options:**
+1. Docker Compose (full stack with frontend, backend, Qdrant, FalkorDB)
+2. Frontend-only (Vercel/static hosting) with external backend
+3. Local development with Vite dev server
 
 ---
 
-*Stack analysis: 2026-02-06*
+*Stack analysis: 2025-02-19*

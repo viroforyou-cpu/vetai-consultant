@@ -1,128 +1,146 @@
 # External Integrations
 
-**Analysis Date:** 2026-02-06
+**Analysis Date:** 2025-02-19
 
 ## APIs & External Services
 
-**AI/ML:**
-- Google Gemini AI - Text embeddings, transcription, data extraction, semantic search, knowledge graph generation
-  - SDK/Client: `@google/genai` (npm), `google-genai` (pip)
-  - Auth: `GEMINI_API_KEY` env var (optional fallback)
-  - Models: `gemini-2.5-flash`, `text-embedding-004`
-  - Service file: `/src/services/geminiService.ts`, `/backend/graph_service.py`
+**AI/ML Models:**
+- **Google Gemini AI** - Transcription, embeddings, semantic search, clinical data extraction
+  - SDK/Client: `@google/genai` (frontend), `google-generativeai` (backend)
+  - Models: `gemini-2.5-flash` (primary), `text-embedding-004` (embeddings)
+  - Auth: `GEMINI_API_KEY` environment variable
+  - Location: `/src/services/geminiService.ts`
 
-- Z.ai GLM API - Alternative AI model for multi-language support
-  - Auth: `GLM_API_KEY` env var (primary AI model)
-  - Model: `glm-4.7`
-  - Service file: `/src/services/glmService.ts` (if exists)
+- **GLM (ZhipuAI/Z.ai)** - Alternative AI model for same features
+  - API Endpoint: `https://api.z.ai/api/anthropic`
+  - Models: `glm-4.7`, `glm-4.6`, `glm-4.5` (with fallback chain)
+  - Auth: `GLM_API_KEY` environment variable
+  - Embedding endpoint: `GLM_EMBEDDING_URL` (default: `https://api.z.ai/api/v1/embeddings`)
+  - Location: `/src/services/glmService.ts`
+  - Note: Uses Anthropic-compatible API format
 
-- PubMed/Biomedical Literature - Scientific literature search
-  - Implementation: Uses Gemini AI with Google Search tool (`googleSearch`)
-  - Service file: `/src/services/geminiService.ts` - `searchPubMed()` function
+- **AI Service Abstraction** - Model selection layer
+  - Location: `/src/services/aiService.ts`
+  - Runtime switching via `AI_MODEL` environment variable
+  - Availability checking for both Gemini and GLM
+
+- **Google Search (Gemini only)** - PubMed/veterinary literature search
+  - Implementation: `googleSearch` tool in `searchPubMed()` function
+  - Not available when using GLM model
 
 ## Data Storage
 
-**Vector Databases:**
-- Qdrant - Vector database for semantic search
-  - Connection: `QDRANT_URL` env var (defaults to http://localhost:6333)
-  - Client: REST API via fetch
-  - Collection: `vet_consultations`
-  - Vector size: 768 dimensions, Cosine distance
-  - Service file: `/src/services/qdrantService.ts`
-  - Graceful degradation: Falls back to browser-based local vector search
+**Databases:**
+- **Supabase (PostgreSQL with pgvector)** - Primary database
+  - Connection: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+  - Client: `@supabase/supabase-js`
+  - Schema: `/supabase/migrations/20260213000000_initial_schema.sql`
+  - Tables: `consultations`, `attachments`
+  - Vector search: HNSW index on 1536-dim embeddings using pgvector
+  - RPC functions: `match_consultations` for vector similarity search
+  - Location: `/src/services/supabaseService.ts`
 
-**Graph Databases:**
-- FalkorDB - Graph database for knowledge graphs
-  - Connection: `FALKORDB_HOST` (localhost), `FALKORDB_PORT` (6379)
-  - Client: Python `falkordb` package
-  - Graph name: `vetai_graph`
-  - Service file: `/backend/main.py`, `/backend/graph_service.py`
-  - Optional: Gracefully handles unavailability
+- **Qdrant** (Optional - vector database with graceful degradation)
+  - Connection: `QDRANT_URL` (default: http://localhost:6333)
+  - Collection: `vet_consultations` with 768-dim cosine vectors
+  - REST API via direct fetch calls
+  - Fallback: Browser-based local vector search when unavailable
+  - Location: `/src/services/qdrantService.ts`
 
-- Graphiti - Temporal knowledge graph library
-  - Connection: Uses FalkorDB as backend
-  - Client: Python `graphiti-core` package
-  - Service file: `/backend/graph_service.py`
-  - Optional: Gracefully handles unavailability
+- **FalkorDB** (Optional - graph database)
+  - Connection: `FALKORDB_HOST`, `FALKORDB_PORT` (default: localhost:6379)
+  - Client: `falkordb` Python package
+  - Purpose: Temporal knowledge graphs via Graphiti
+  - Location: `/backend/graph_service.py`, `/backend/main.py`
 
 **File Storage:**
-- Local filesystem - Consultation data persistence
-  - Location: `/backend/consultation_data/` directory
-  - Format: JSON files per consultation
-  - Service file: `/backend/main.py`
-
-- LocalStorage (Browser) - Client-side data persistence and offline cache
-  - Storage keys: `vetai_consultations`
-  - Limitations: ~5MB storage limit
-  - Service file: `/src/App.tsx`
+- Local filesystem for consultation data: `./consultation_data/`
+- Supabase Storage (planned - Phase 4)
+- Attachments metadata stored in `attachments` table
 
 **Caching:**
-- Browser LocalStorage - Consultation data cache
-- Inline embeddings in consultation objects for local search fallback
+- Browser localStorage as offline cache
+- Embeddings stored inline in consultation objects for local search fallback
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- Custom - No external authentication provider
-  - Implementation: API keys stored in `.env` file
-  - No user authentication system
-  - Direct API key usage for AI services
+- None (application is currently single-user, no authentication)
+- Supabase Auth is configured but not yet implemented
+- Future: `VITE_SUPABASE_URL` and anon key could support Supabase Auth
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None detected
+- None (no Sentry or similar service integrated)
 
 **Logs:**
-- Browser console logging (console.warn, console.error, console.log)
-- Python logging module (backend)
+- Console logging in browser (`console.log`, `console.warn`, `console.error`)
+- Python logging in backend (`logging` module, INFO level)
+- Structured logging in AI services for debugging model calls
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Static file hosting (Vite build output)
-- Optional: Docker containers via `docker-compose.yml`
+- **Docker Compose** - Primary deployment method
+  - Services: frontend (nginx), backend (FastAPI), qdrant, falkordb
+  - Network: `vetai-network` (bridge)
+  - Volumes: `consultation_data`, `qdrant_data`, `falkordb_data`
+  - Location: `/docker-compose.yml`
+
+- **Vercel** (Planned/partially configured)
+  - Config file: `/vercel.json` (currently empty)
+  - Suitable for frontend-only deployment
 
 **CI Pipeline:**
-- None detected
+- None detected (no GitHub Actions, GitLab CI, or similar)
 
 ## Environment Configuration
 
 **Required env vars:**
-- `GLM_API_KEY` - Z.ai API key (primary AI model)
-- `GEMINI_API_KEY` - Google Gemini API key (optional fallback)
+- `AI_MODEL` - Model selection: 'gemini' or 'glm'
+- `GEMINI_API_KEY` OR `GLM_API_KEY` - At least one AI model key required
+- `API_KEY` - Legacy fallback (maps to GLM_API_KEY)
 
 **Optional env vars:**
-- `AI_MODEL` - Model selector ('glm' or 'gemini', defaults to 'glm')
-- `QDRANT_URL` - Qdrant endpoint (defaults to http://localhost:6333)
-- `VITE_BACKEND_URL` - Backend URL for proxy (defaults to /api)
-- `FALKORDB_HOST` - FalkorDB host (defaults to localhost)
-- `FALKORDB_PORT` - FalkorDB port (defaults to 6379)
+- `VITE_SUPABASE_URL` - Supabase project URL (default: http://localhost:54321)
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key
+- `QDRANT_URL` - Qdrant vector database URL (default: http://localhost:6333)
+- `VITE_BACKEND_URL` - Backend API URL (default: http://127.0.0.1:8000)
+- `GLM_API_URL` - Custom GLM API endpoint
+- `GLM_MODEL` - GLM model name (default: glm-4.7)
+- `GLM_EMBEDDING_URL` - GLM embedding endpoint
+- `GLM_EMBEDDING_MODEL` - GLM embedding model
+- `FALKORDB_HOST` - FalkorDB host (default: localhost)
+- `FALKORDB_PORT` - FalkorDB port (default: 6379)
 
 **Secrets location:**
-- `.env` file in project root
-- `.env.example` and `secrets.env.example` for reference
+- `.env` file (not committed to git, in .gitignore)
+- `.env.docker.example` - Template for configuration
+- Environment passed via Docker Compose for containerized deployment
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None detected
+- None (no webhook endpoints configured)
 
 **Outgoing:**
-- None detected
+- None (no webhook sending implemented)
 
-## CDNs and External Resources
+**API Endpoints (Internal - Backend):**
+- `GET /` - Backend health check
+- `POST /save_consultation` - Save consultation data
+- `POST /graph/consultation` - Add consultation to knowledge graph
+- `POST /graph/search` - Search knowledge graph
+- `POST /graph/question` - Ask question about graph
+- `GET /graph/patient/{patient_name}` - Get patient knowledge graph
+- `GET /graph/stats` - Graph statistics
+- `GET /graph/health` - Graph service health check
 
-**Module CDNs:**
-- esm.sh - Dynamic module loading for `d3`, `@google/genai`, `react`, `react-dom`
-  - Configured in `/index.html` import maps
-
-**CSS CDNs:**
-- Tailwind CSS CDN - `https://cdn.tailwindcss.com`
-
-**Font CDNs:**
-- Google Fonts - Inter family (300, 400, 500, 600, 700 weights)
+**Frontend API Proxy:**
+- Vite dev server proxies `/api/*` to backend (dev mode)
+- nginx proxies `/api/*` to backend (production/Docker mode)
 
 ---
 
-*Integration audit: 2026-02-06*
+*Integration audit: 2025-02-19*
