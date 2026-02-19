@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, (process as any).cwd(), '');
   // Default to localhost for local dev, or use env var (e.g. from Docker)
@@ -14,15 +15,33 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    base: './',  // Use relative paths for Vercel compatibility
     define: {
       'process.env': {
         ...env,
         AI_MODEL: aiModel
       }
     },
+    build: {
+      outDir: 'dist',
+      sourcemap: true,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'react-vendor': ['react', 'react-dom'],
+            'd3': ['d3'],
+          }
+        }
+      }
+    },
     server: {
       port: 3000,
       host: true,
+      strictPort: true,
+      hmr: {
+        protocol: 'ws',
+        host: 'localhost'
+      },
       proxy: {
         '/api': {
           target: backendUrl,

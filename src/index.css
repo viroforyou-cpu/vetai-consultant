@@ -1,5 +1,8 @@
 /* VetAI Consultant - Base Styles */
-/* Tailwind CSS is loaded via CDN in index.html */
+/* Tailwind CSS directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Custom animations and utilities */
 @keyframes animate-in {
