@@ -6,14 +6,14 @@ See: .planning/PROJECT.md (updated 2025-02-04)
 
 **Core value:** Veterinarians can record, transcribe, search, and analyze patient consultations using AI with data accessible from anywhere.
 
-**Current focus:** Phase 6: Docker Deployment - COMPLETE ✅
+**Current focus:** Phase 6: Docker Deployment - COMPLETE ✅ + Knowledge Graph Restoration
 
 ## Current Position
 
 Phase: 6 of 6 (Docker Deployment - Complete)
 Plan: 06-docker-deployment
 Status: ✅ Phase 6 Complete (Docker deployment ready for distribution)
-Last activity: 2026-02-19 — Docker deployment created, tested, and pushed to GitHub
+Last activity: 2026-02-19 — Restored FalkorDB and Backend for temporal knowledge graphs
 
 Progress: [██████████] 100%
 
@@ -77,8 +77,8 @@ Recent decisions affecting current work:
 ## Session Continuity
 
 Last session: 2026-02-19
-Stopped at: Phase 3 Supabase Database - code complete, pending Docker setup
-Resume file: .planning/phases/03.1-complete-supabase-database/PLAN.md
+Stopped at: Knowledge graph restoration complete, pushed to GitHub
+Current state: Docker deployment includes 4 services (frontend, backend, falkordb, postgres)
 
 ## Phase 3 Progress Summary
 
@@ -271,6 +271,75 @@ Resume file: .planning/phases/03.1-complete-supabase-database/PLAN.md
 - Available via GitHub: https://github.com/viroforyou-cpu/vetai-consultant
 - Users run: `git clone` + `docker-compose up -d`
 - Only requirement: GLM API key from https://open.bigmodel.cn/
+
+## Knowledge Graph Restoration (Post-Phase 6)
+
+**Date:** 2026-02-19
+**Status:** ✅ COMPLETE
+**Commit:** `faabd68`
+
+**What was done:**
+Restored temporal knowledge graph functionality that was removed during Phase 6 simplification. The Docker deployment now includes FalkorDB and FastAPI backend to support the Graphiti library for knowledge graph operations.
+
+1. Updated [`docker-compose.yml`](docker-compose.yml)
+   - Added **backend** service (FastAPI Python) on port 8000
+   - Added **falkordb** service (Graph database) on port 6379
+   - Total services: 2 → 4 (frontend, backend, falkordb, postgres)
+2. Updated [`nginx.conf`](nginx.conf)
+   - Added `/api/` location block to proxy requests to backend
+   - Configured 60s timeouts for long-running AI operations
+   - Added proper proxy headers and buffering
+3. Updated [`.env.docker.example`](.env.docker.example)
+   - Added Gemini API key (required for Graphiti LLM client)
+   - Added FalkorDB configuration (FALKORDB_HOST, FALKORDB_PORT)
+   - Added Graphiti configuration (GRAPHITI_GRAPH_NAME)
+   - Added backend configuration (VITE_BACKEND_URL, BACKEND_PORT)
+
+**Files modified:**
+- `docker-compose.yml` - Added backend and falkordb services
+- `nginx.conf` - Added /api/ proxy to backend
+- `.env.docker.example` - Added complete configuration
+
+**Architecture (4 services):**
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Docker Compose (4 services)              │
+├─────────────────────────────────────────────────────────────┤
+│  Frontend (nginx)  → Port 8080                              │
+│  Backend (FastAPI) → Port 8000                              │
+│  FalkorDB         → Port 6379                              │
+│  PostgreSQL       → Port 54324                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Knowledge Graph Features:**
+- **Temporal Entity Extraction**: Graphiti extracts entities from consultations
+- **Multi-Date Patient Visualization**: Graph shows progression across consultation dates
+- **RAG Question Answering**: Ask questions against the knowledge graph
+- **D3.js Visualization**: Force-directed graph display in the UI
+
+**Backend Implementation:**
+- `backend/graph_service.py` (~462 lines)
+  - `add_consultation_to_graph()` - Adds consultations to temporal knowledge graph
+  - `get_patient_knowledge_graph()` - Returns graph data for specific patient
+  - `search_knowledge_graph()` - Semantic search across episodes
+  - `ask_graph_question()` - RAG-based Q&A
+- `backend/main.py` - FastAPI endpoints for graph operations
+  - `POST /api/graph/add` - Add consultation to graph
+  - `GET /api/graph/patient/{patient_name}` - Get patient graph
+  - `GET /api/graph/search` - Search knowledge graph
+  - `GET /api/graph/ask` - Ask question with RAG
+
+**API Keys Required:**
+1. **GLM API Key** (from Z.ai) - Transcription, semantic search, data extraction
+2. **Gemini API Key** (from Google AI) - Graphiti LLM client for knowledge graphs
+
+**Build status:** ✅ Passing (docker-compose config validated, frontend build succeeds)
+
+**Git Commit:**
+```
+faabd68 feat(docker): restore FalkorDB and Backend for knowledge graphs
+```
 
 ## Phase 1 Completion Summary
 
