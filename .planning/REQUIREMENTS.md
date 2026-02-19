@@ -75,9 +75,9 @@ Requirements mapped to phases in ROADMAP.md
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| BUILD-01 through BUILD-08 | Phase 1 | Pending |
-| GLM-01 through GLM-05 | Phase 2 | Pending |
-| SUPA-01 through SUPA-04 | Phase 3 | Pending |
+| BUILD-01 through BUILD-08 | Phase 1.1 | Pending |
+| GLM-01 through GLM-05 | Phase 2.1 | Pending |
+| SUPA-01 through SUPA-04 | Phase 3.1 | Pending |
 | SUPA-05 through SUPA-08 | Phase 4 | Pending |
 | DEPLOY-01 through DEPLOY-05 | Phase 5 | Pending |
 | DEPLOY-06 through DEPLOY-07 | Phase 6 | Pending |
