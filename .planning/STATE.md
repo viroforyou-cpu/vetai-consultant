@@ -6,23 +6,23 @@ See: .planning/PROJECT.md (updated 2025-02-04)
 
 **Core value:** Veterinarians can record, transcribe, search, and analyze patient consultations using AI with data accessible from anywhere.
 
-**Current focus:** Phase 5: GitHub & Vercel Setup - COMPLETE ✅
+**Current focus:** Phase 6: Docker Deployment - COMPLETE ✅
 
 ## Current Position
 
-Phase: 5 of 6 (GitHub & Vercel Setup - Complete)
-Plan: 05-github-vercel-setup
-Status: ✅ Phase 5 Complete (Git commits pushed, Vercel connection documented)
-Last activity: 2026-02-19 — Git commits organized, pushed to GitHub, Vercel config prepared
+Phase: 6 of 6 (Docker Deployment - Complete)
+Plan: 06-docker-deployment
+Status: ✅ Phase 6 Complete (Docker deployment ready for distribution)
+Last activity: 2026-02-19 — Docker deployment created, tested, and pushed to GitHub
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 5
-- Average duration: ~38 min
-- Total execution time: 3+ hours
+- Total plans completed: 6
+- Average duration: ~40 min
+- Total execution time: 4+ hours
 
 **By Phase:**
 
@@ -33,10 +33,11 @@ Progress: [█████████░] 90%
 | Supabase Database | 1 | 1 | 45 min |
 | Storage & Migration | 1 | 1 | 60 min |
 | GitHub & Vercel Setup | 1 | 1 | 45 min |
+| Docker Deployment | 1 | 1 | 60 min |
 
 **Recent Trend:**
-- Last 5 plans: Build Foundation Wave 1-3 (20 min), GLM Integration (30 min), Complete Supabase (45 min), Storage & Migration (60 min), GitHub & Vercel (45 min)
-- Trend: On track
+- Last 6 plans: Build Foundation Wave 1-3 (20 min), GLM Integration (30 min), Complete Supabase (45 min), Storage & Migration (60 min), GitHub & Vercel (45 min), Docker Deployment (60 min)
+- Trend: Complete
 
 *Updated after each plan completion*
 
@@ -233,6 +234,43 @@ Resume file: .planning/phases/03.1-complete-supabase-database/PLAN.md
 3. Link: `vercel link`
 4. Configure environment variables in Vercel dashboard
 5. Deploy: `vercel --prod`
+
+## Phase 6 Completion Summary
+
+**Date:** 2026-02-19
+**Status:** ✅ COMPLETE
+
+**What was done:**
+1. Updated [`Dockerfile`](Dockerfile) with current architecture (Vite + nginx)
+2. Created new [`docker-compose.yml`](docker-compose.yml) with simplified architecture
+   - Frontend: nginx + React SPA (port 8080)
+   - Database: PostgreSQL 16 + pgvector (port 54324)
+   - Removed: Qdrant, FalkorDB, FastAPI backend
+3. Updated [`nginx.conf`](nginx.conf) for SPA routing and CORS headers
+4. Updated [`.env.docker.example`](.env.docker.example) with complete GLM configuration
+5. Created [`README-Docker.md`](README-Docker.md) with comprehensive user guide
+
+**Files created/modified:**
+- `Dockerfile` - Modified (simplified for current architecture)
+- `docker-compose.yml` - Modified (new architecture, 2 services)
+- `nginx.conf` - Modified (SPA routing, CORS)
+- `.env.docker.example` - Modified (GLM configuration)
+- `README-Docker.md` - New file
+- `.planning/phases/06-docker-deployment/PLAN.md` - New file
+- `.planning/phases/06-docker-deployment/VERIFICATION.md` - New file
+- `.planning/phases/06-docker-deployment/SUMMARY.md` - New file
+
+**Build status:** ✅ Passing (Docker build verified, ~30s build time)
+
+**Architecture Simplification:**
+- Services: 4 → 2 (50% reduction)
+- docker-compose.yml: 126 lines → 80 lines (36% reduction)
+- Single command startup: `docker-compose up -d`
+
+**Distribution:**
+- Available via GitHub: https://github.com/viroforyou-cpu/vetai-consultant
+- Users run: `git clone` + `docker-compose up -d`
+- Only requirement: GLM API key from https://open.bigmodel.cn/
 
 ## Phase 1 Completion Summary
 
